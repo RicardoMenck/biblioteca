@@ -1,0 +1,17 @@
+#BlueJ class context
+comment0.target=Biblioteca
+comment1.params=
+comment1.target=Biblioteca()
+comment2.params=livro
+comment2.target=void\ adicionar_livro(Livro)
+comment3.params=isbn
+comment3.target=void\ remover_livro(java.lang.String)
+comment4.params=titulo
+comment4.target=java.util.ArrayList\ buscar_por_titulo(java.lang.String)
+comment5.params=isbn
+comment5.target=boolean\ emprestar_livro(java.lang.String)
+comment6.params=isbn
+comment6.target=void\ devolver_livro(java.lang.String)
+comment7.params=
+comment7.target=java.util.ArrayList\ listar_livros()
+numComments=8
