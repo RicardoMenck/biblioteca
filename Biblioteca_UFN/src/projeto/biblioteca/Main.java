@@ -6,16 +6,16 @@ public class Main {
     public static void main(String[] args) {
         Biblioteca biblioteca = new Biblioteca();
 
-        Livro l1 = new Livro("O Príncipe "," Nicolau Maquiavél ", " Isbn1 " );
+        Livro l1 = new Livro("Entendendno algoritmos "," Aditya Bhargava ", " 4564654 " );
 
         biblioteca.adicionarLivro(l1);
         boolean reserva1 = l1.reservar();
-        System.out.println("Reserva 1 efetuada!" + reserva1);
+        System.out.println("Reservado!" + reserva1);
 
-        Livro l2 = new Livro(" O Poder do Hábito "," Charles Duhigg ", " Isbn2 " );
+        Livro l2 = new Livro(" As seis lições "," Ludwig von Mises ", " 4565 " );
 
         biblioteca.adicionarLivro(l2);
-        biblioteca.emprestarLivro("Isbn2");
+        biblioteca.emprestarLivro("4565");
         System.out.println(l2.exibir_info());
 
     }
