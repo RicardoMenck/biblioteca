@@ -51,4 +51,13 @@ public class Livro {
   public void setExemplarBiblioteca(boolean exemplarBiblioteca) {
     this.exemplarBiblioteca = exemplarBiblioteca;
   }
+
+  @Override
+  public String toString() {
+    // Se tiver título carregado, mostra o nome da obra + ID do exemplar
+    if (titulo != null) {
+      return "ID " + id + ": " + titulo.getNome();
+    }
+    return "Livro ID " + id;
+  }
 }

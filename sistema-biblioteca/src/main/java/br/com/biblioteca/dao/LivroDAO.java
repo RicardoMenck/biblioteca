@@ -134,4 +134,54 @@ public class LivroDAO {
       throw new RuntimeException("Erro ao excluir livro: " + e.getMessage());
     }
   }
+
+  // Adicione no final da classe LivroDAO, antes do último fecha-chaves
+
+  public List<Livro> listarDisponiveis() {
+    List<Livro> livros = new ArrayList<>();
+
+    // SQL PODEROSO:
+    // 1. Seleciona Livro + Titulo (JOIN)
+    // 2. Filtra: Não pode ser de biblioteca (exemplar_biblioteca = 0)
+    // 3. Filtra: O ID do livro NÃO PODE ESTAR (NOT IN) na lista de itens não
+    // devolvidos
+    String sql = """
+            SELECT l.id, l.exemplar_biblioteca, l.id_titulo,
+                   t.nome AS titulo_nome, t.prazo
+              FROM livro l
+             INNER JOIN titulo t ON l.id_titulo = t.id
+             WHERE l.exemplar_biblioteca = 0
+               AND l.id NOT IN (
+                   SELECT id_livro
+                     FROM item_emprestimo
+                    WHERE data_devolucao_real IS NULL
+                       OR data_devolucao_real = 0
+               )
+        """;
+
+    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql);
+        ResultSet rs = comando.executeQuery()) {
+
+      while (rs.next()) {
+        // Reconstrói o objeto Titulo
+        Titulo t = new Titulo();
+        t.setId(rs.getInt("id_titulo"));
+        t.setNome(rs.getString("titulo_nome"));
+        t.setPrazo(rs.getInt("prazo"));
+
+        // Reconstrói o Livro
+        Livro l = new Livro();
+        l.setId(rs.getInt("id"));
+        l.setExemplarBiblioteca(rs.getBoolean("exemplar_biblioteca"));
+        l.setTitulo(t);
+
+        livros.add(l);
+      }
+
+    } catch (SQLException e) {
+      throw new RuntimeException("Erro ao buscar livros disponíveis: " + e.getMessage());
+    }
+    return livros;
+  }
 }
