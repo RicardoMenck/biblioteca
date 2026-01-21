@@ -8,9 +8,25 @@ public class Area {
   public Area() {
   }
 
-  public Area(Integer id, String nome) {
+  // Construtor para criação rápida
+  public Area(Integer id, String nome, String descricao) {
     this.id = id;
     this.nome = nome;
+    this.descricao = descricao;
+  }
+
+  // Construtor sem ID (para novos cadastros antes de ir pro banco)
+  public Area(String nome, String descricao) {
+    this.nome = nome;
+    this.descricao = descricao;
+  }
+
+  public boolean validar() {
+    // Verifica se nome é nulo ou vazio/espaço em branco
+    if (this.nome == null || this.nome.trim().isEmpty()) {
+      return false;
+    }
+    return true;
   }
 
   // Getters e Setters
@@ -40,6 +56,16 @@ public class Area {
 
   @Override
   public String toString() {
-    return this.nome; // Importante para o ComboBox
+    return this.nome;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null || getClass() != obj.getClass())
+      return false;
+    Area area = (Area) obj;
+    return id != null && id.equals(area.id);
   }
 }

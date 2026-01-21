@@ -6,52 +6,63 @@ import java.util.Date;
 import java.util.List;
 
 public class Emprestimo {
-  private int emprestimo; // id
-  private String nome; // ra
-  private Date dataEmprestimo = new Date();
-  private Date dataPrevista = new Date();
-  private Date data_aux = new Date();
+  private Integer id; // id
+  private Date dataEmprestimo;
+  private Date dataPrevista;
+  private Aluno aluno;
 
   // Lista de itens
   private List<ItemEmprestimo> itens = new ArrayList<>();
 
   public Emprestimo() {
+    this.dataEmprestimo = new Date(); // Define data atual ao criar
   }
 
-  public Emprestimo(String raAluno) {
-    this.nome = raAluno;
-    this.dataEmprestimo = new Date();
-  }
-
-  public boolean emprestar(List<Livro> livros) {
-    // Adiciona um novo item para cada livro passado
-    for (Livro livro : livros) {
-      ItemEmprestimo novoItem = new ItemEmprestimo(livro);
-      novoItem.setEmprestimo(this); // Garante a referência bidirecional
-      this.itens.add(novoItem);
+  public boolean emprestar(List<Livro> livrosSelecionados) {
+    if (livrosSelecionados == null || livrosSelecionados.isEmpty()) {
+      return false;
     }
 
-    // Chama o método para calcular a data de devolução
-    calculaDataDevolucao();
+    // 1. Cria os itens baseados nos livros
+    for (Livro livro : livrosSelecionados) {
+      // Verifica se o livro pode ser emprestado (Disponível e não é exemplar de
+      // consulta)
+      if (livro.verificarDisponibilidade()) {
+        ItemEmprestimo item = new ItemEmprestimo(livro, this);
+        this.itens.add(item);
 
-    // Logs para conferência (Mantido do original)
-    System.out.print("\nNumero de Livros Emprestados: " + this.itens.size());
-    System.out.print("\nData de Empréstimo: " + this.dataEmprestimo);
-    System.out.print("\nData de Devolução Calculada: " + this.dataPrevista);
+        // Marca o livro como indisponível na memória imediatamente
+        livro.setDisponivel(false);
+      }
+    }
+
+    // Se nenhum livro pôde ser adicionado, retorna falso
+    if (this.itens.isEmpty()) {
+      return false;
+    }
+
+    // 2. Chama o SEU método de cálculo para definir as datas
+    this.dataPrevista = this.calculaDataDevolucao();
 
     return true;
   }
 
+  /**
+   * Lógica de cálculo de datas com regra de bônus.
+   * (Sua implementação com correções de sintaxe Java)
+   */
   private Date calculaDataDevolucao() {
-    Date date = new Date(); // Data base é hoje
+    Date date = this.dataEmprestimo; // Data base é a do empréstimo (hoje)
+    Date dataPrevistaCalc = this.dataEmprestimo; // Inicializa segura para comparação
 
     // 1. Itera para encontrar a data mais distante entre os livros
     for (ItemEmprestimo item : this.itens) {
-      data_aux = item.calculaDataDevolucao(date);
+      // O Item calcula a data dele baseada no prazo do título
+      Date data_aux = item.calculaDataDevolucao(date);
 
       // Se a data calculada do item for maior que a prevista atual, atualiza
-      if (dataPrevista.compareTo(data_aux) < 0) {
-        dataPrevista = data_aux;
+      if (data_aux.compareTo(dataPrevistaCalc) > 0) {
+        dataPrevistaCalc = data_aux;
       }
     }
 
@@ -59,18 +70,21 @@ public class Emprestimo {
     if (this.itens.size() > 2) {
       int tam = this.itens.size() - 2;
       Calendar calendar = Calendar.getInstance();
-      calendar.setTime(dataPrevista);
-      calendar.add(Calendar.DATE, (tam * 2)); // Adiciona 2 dias para cada livro extra
-      dataPrevista = calendar.getTime();
+      calendar.setTime(dataPrevistaCalc);
+      calendar.add(Calendar.DATE, (tam * 2)); // Adiciona 2 dias para cada livro extra além de 2
+      dataPrevistaCalc = calendar.getTime();
     }
 
-    // 3. Atualiza a data de devolução em todos os itens para ficarem iguais ao
+    // 3. Atualiza a data PREVISTA em todos os itens para ficarem iguais ao
     // empréstimo
+    // Assim, todos os livros desse pacote devem ser devolvidos juntos na data
+    // bonificada
     for (ItemEmprestimo item : this.itens) {
-      item.setDataDevolucao(dataPrevista);
+      item.setDataPrevista(dataPrevistaCalc);
+      // OBS: Não usamos setDataDevolucao aqui para não dar baixa automática
     }
 
-    return dataPrevista;
+    return dataPrevistaCalc;
   }
 
   public void adicionarItem(ItemEmprestimo item) {
@@ -78,22 +92,12 @@ public class Emprestimo {
     this.itens.add(item);
   }
 
-  // Get e Set
-
-  public int getEmprestimo() {
-    return emprestimo;
+  public Integer getId() {
+    return id;
   }
 
-  public void setEmprestimo(int emprestimo) {
-    this.emprestimo = emprestimo;
-  }
-
-  public String getNome() {
-    return nome;
-  }
-
-  public void setNome(String nome) {
-    this.nome = nome;
+  public void setId(Integer id) {
+    this.id = id;
   }
 
   public Date getDataEmprestimo() {
@@ -112,12 +116,12 @@ public class Emprestimo {
     this.dataPrevista = dataPrevista;
   }
 
-  public Date getData_aux() {
-    return data_aux;
+  public Aluno getAluno() {
+    return aluno;
   }
 
-  public void setData_aux(Date data_aux) {
-    this.data_aux = data_aux;
+  public void setAluno(Aluno aluno) {
+    this.aluno = aluno;
   }
 
   public List<ItemEmprestimo> getItens() {
@@ -127,5 +131,7 @@ public class Emprestimo {
   public void setItens(List<ItemEmprestimo> itens) {
     this.itens = itens;
   }
+
+  // Get e Set
 
 }

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Titulo {
-  private Integer id; // Necessário para o Banco de Dados
-  private String nome; // Adicionado para podermos dar nome ao livro
-  private int prazo;
+  private Integer id;
+  private String nome;
+  private Integer prazo;
   private String isbn;
   private Integer edicao;
   private Integer ano;
@@ -18,8 +18,29 @@ public class Titulo {
   public Titulo() {
   }
 
-  public Titulo(int codigo) {
-    this.prazo = codigo + 1;
+  public Titulo(String nome, Integer prazo, String isbn, Integer edicao, Integer ano) {
+    this.nome = nome;
+    this.prazo = prazo;
+    this.isbn = isbn;
+    this.edicao = edicao;
+    this.ano = ano;
+  }
+
+  public boolean validar() {
+    return this.nome != null && !this.nome.isEmpty()
+        && this.prazo != null && this.prazo > 0
+        && this.area != null;
+    // Poderíamos validar se autores.isEmpty() se for obrigatório ter autor
+  }
+
+  public void adicionarAutor(Autor autor) {
+    if (autor != null && !this.autores.contains(autor)) {
+      this.autores.add(autor);
+    }
+  }
+
+  public void removerAutor(Autor autor) {
+    this.autores.remove(autor);
   }
 
   // Getters e Setters
@@ -39,11 +60,11 @@ public class Titulo {
     this.nome = nome;
   }
 
-  public int getPrazo() {
+  public Integer getPrazo() {
     return prazo;
   }
 
-  public void setPrazo(int prazo) {
+  public void setPrazo(Integer prazo) {
     this.prazo = prazo;
   }
 

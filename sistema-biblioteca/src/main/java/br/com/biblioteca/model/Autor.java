@@ -9,9 +9,30 @@ public class Autor {
   public Autor() {
   }
 
-  public Autor(String nome, String sobrenome) {
+  public Autor(String nome, String sobrenome, String titulacao) {
     this.nome = nome;
     this.sobrenome = sobrenome;
+    this.titulacao = titulacao;
+  }
+
+  public Autor(Integer id, String nome, String sobrenome, String titulacao) {
+    this.id = id;
+    this.nome = nome;
+    this.sobrenome = sobrenome;
+    this.titulacao = titulacao;
+  }
+
+  public boolean validar() {
+    if (this.nome == null || this.nome.trim().isEmpty()) {
+      return false;
+    }
+    return true;
+  }
+
+  public String getNomeBibliografico() {
+    String sobrenome = (this.sobrenome != null) ? this.sobrenome.toUpperCase() : "";
+    String nome = (this.nome != null) ? this.nome : "";
+    return sobrenome + ", " + nome;
   }
 
   // Getters e Setters
@@ -49,6 +70,10 @@ public class Autor {
 
   @Override
   public String toString() {
-    return this.nome + " " + this.sobrenome;
+    String display = this.nome;
+    if (this.sobrenome != null && !this.sobrenome.isEmpty()) {
+      display += " " + this.sobrenome;
+    }
+    return display;
   }
 }
