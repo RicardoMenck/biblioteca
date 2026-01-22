@@ -109,4 +109,9 @@ public class ItemDevolucao {
   public int getDiasAtraso() {
     return diasAtraso;
   }
+
+  public void setDiasAtraso(Integer diasAtraso) {
+    this.diasAtraso = diasAtraso;
+  }
+
 }
