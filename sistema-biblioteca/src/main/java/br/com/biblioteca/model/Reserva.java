@@ -1,6 +1,7 @@
 package br.com.biblioteca.model;
 
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class Reserva {
 
@@ -14,40 +15,56 @@ public class Reserva {
 
   // Construtor Vazio
   public Reserva() {
-    this.dataReserva = new Date(); // Por padrão, a data é "agora"
+    this.dataReserva = new Date();
+    this.ativa = true; // Por padrão, ao criar vazio, assume-se intenção de nova reserva
   }
 
-  // Construtor Completo
-  public Reserva(Integer id, Date dataReserva, Aluno aluno, Titulo titulo) {
-    this.id = id;
-    this.dataReserva = dataReserva;
+  // Construtor Prático (Para criar novas reservas na Tela/Controller)
+  public Reserva(Aluno aluno, Titulo titulo) {
     this.aluno = aluno;
     this.titulo = titulo;
-    this.ativa = true;
+    this.dataReserva = new Date(); // Data de agora
+    this.ativa = true; // Nasce ativa
+  }
+
+  // Construtor Completo (Para o DAO carregar do banco)
+  public Reserva(Integer id, Date dataReserva, boolean ativa, Aluno aluno, Titulo titulo) {
+    this.id = id;
+    this.dataReserva = dataReserva;
+    this.ativa = ativa;
+    this.aluno = aluno;
+    this.titulo = titulo;
   }
 
   // --- MÉTODOS DE NEGÓCIO ---
 
   /**
-   * Verifica se a reserva ainda é válida.
-   * Exemplo de regra: Reservas com mais de 30 dias expiram.
+   * Valida se os dados mínimos estão presentes
    */
-  public boolean isAtiva() {
-    // Implementação futura: comparar dataReserva com data atual
-    // Por enquanto, assumimos que toda reserva no sistema está ativa
-    return true;
-  }
-
   public boolean validar() {
     return this.aluno != null && this.titulo != null;
   }
 
+  /**
+   * Método opcional para verificar se a reserva expirou (Ex: 10 dias).
+   * Isso NÃO substitui o isAtiva(). O isAtiva diz se foi cancelada/atendida.
+   * Este diz se o prazo venceu.
+   */
+  public boolean isExpirada() {
+    if (this.dataReserva == null)
+      return true;
+
+    long diferenca = new Date().getTime() - this.dataReserva.getTime();
+    long dias = TimeUnit.DAYS.convert(diferenca, TimeUnit.MILLISECONDS);
+
+    return dias > 10; // Exemplo: Expira em 10 dias
+  }
+
   @Override
   public String toString() {
-    // Ex: "Reserva: Dom Casmurro - João (10/05/2025)"
-    // Simples e direto para logs ou listas
     return "Reserva: " + (titulo != null ? titulo.getNome() : "?")
-        + " - " + (aluno != null ? aluno.getNome() : "?");
+        + " - " + (aluno != null ? aluno.getNome() : "?")
+        + (ativa ? " [ATIVA]" : " [INATIVA]");
   }
 
   // --- GETTERS E SETTERS ---
@@ -68,6 +85,15 @@ public class Reserva {
     this.dataReserva = dataReserva;
   }
 
+  // CORREÇÃO: O getter retorna o atributo real!
+  public boolean isAtiva() {
+    return ativa;
+  }
+
+  public void setAtiva(boolean ativa) {
+    this.ativa = ativa;
+  }
+
   public Aluno getAluno() {
     return aluno;
   }
@@ -83,9 +109,4 @@ public class Reserva {
   public void setTitulo(Titulo titulo) {
     this.titulo = titulo;
   }
-
-  public void setAtiva(boolean ativa) {
-    this.ativa = ativa;
-  }
-
 }

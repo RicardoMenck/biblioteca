@@ -16,13 +16,13 @@ public class DebitoDAO {
   private static final String SQL_DELETE = "DELETE FROM debito WHERE id = ?"; // Usado para quitar a dívida
 
   public void salvar(Debito debito) throws SQLException {
-    try (Connection conn = ConexaoFactory.getConexao();
-        PreparedStatement pstm = conn.prepareStatement(SQL_INSERT)) {
+    try (Connection conexa = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexa.prepareStatement(SQL_INSERT)) {
 
-      pstm.setInt(1, debito.getCodigoAluno());
-      pstm.setDouble(2, debito.getValor());
-      pstm.setDate(3, new java.sql.Date(debito.getDataDebito().getTime()));
-      pstm.executeUpdate();
+      comando.setInt(1, debito.getCodigoAluno());
+      comando.setDouble(2, debito.getValor());
+      comando.setDate(3, new java.sql.Date(debito.getDataDebito().getTime()));
+      comando.executeUpdate();
     }
   }
 
@@ -32,11 +32,11 @@ public class DebitoDAO {
    */
   public List<Debito> listarPorAluno(int idAluno) throws SQLException {
     List<Debito> debitos = new ArrayList<>();
-    try (Connection conn = ConexaoFactory.getConexao();
-        PreparedStatement pstm = conn.prepareStatement(SQL_SELECT_POR_ALUNO)) {
+    try (Connection conexa = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexa.prepareStatement(SQL_SELECT_POR_ALUNO)) {
 
-      pstm.setInt(1, idAluno);
-      try (ResultSet rs = pstm.executeQuery()) {
+      comando.setInt(1, idAluno);
+      try (ResultSet rs = comando.executeQuery()) {
         while (rs.next()) {
           Debito d = new Debito();
           d.setId(rs.getInt("id"));
@@ -56,10 +56,10 @@ public class DebitoDAO {
    * teríamos uma tabela de "Pagamentos" e mudaríamos status.
    */
   public void quitarDebito(int idDebito) throws SQLException {
-    try (Connection conn = ConexaoFactory.getConexao();
-        PreparedStatement pstm = conn.prepareStatement(SQL_DELETE)) {
-      pstm.setInt(1, idDebito);
-      pstm.executeUpdate();
+    try (Connection conexa = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexa.prepareStatement(SQL_DELETE)) {
+      comando.setInt(1, idDebito);
+      comando.executeUpdate();
     }
   }
 }

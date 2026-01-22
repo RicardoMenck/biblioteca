@@ -46,9 +46,6 @@ public class EmprestimoDAO {
   // --- MÉTODOS ---
 
   public void salvar(Emprestimo emprestimo) throws SQLException {
-    // Empréstimos geralmente só são criados (Insert).
-    // Edição de empréstimo é raro (geralmente se cancela e faz outro),
-    // mas aqui vamos focar no INSERT que é o fluxo principal.
     if (emprestimo.getId() == null) {
       this.inserir(emprestimo);
     } else {
@@ -63,7 +60,7 @@ public class EmprestimoDAO {
 
     try {
       conexao = ConexaoFactory.getConexao();
-      conexao.setAutoCommit(false); // INÍCIO DA TRANSAÇÃO
+      conexao.setAutoCommit(false);
 
       // 1. Insere o Cabeçalho (Emprestimo)
       comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
@@ -115,21 +112,21 @@ public class EmprestimoDAO {
       return;
     }
 
-    try (PreparedStatement pstmItem = conexao.prepareStatement(SQL_INSERT_ITEM);
-        PreparedStatement pstmStock = conexao.prepareStatement(SQL_UPDATE_DISPONIBILIDADE_LIVRO)) {
+    try (PreparedStatement comandoItem = conexao.prepareStatement(SQL_INSERT_ITEM);
+        PreparedStatement comandoStock = conexao.prepareStatement(SQL_UPDATE_DISPONIBILIDADE_LIVRO)) {
 
       for (ItemEmprestimo item : emprestimo.getItens()) {
         // a) Insert na tabela item_emprestimo
-        pstmItem.setInt(1, emprestimo.getId());
-        pstmItem.setInt(2, item.getLivro().getId());
-        pstmItem.setDate(3, new java.sql.Date(item.getDataPrevista().getTime()));
-        pstmItem.setNull(4, java.sql.Types.DATE); // Data Devolução nasce NULL
-        pstmItem.executeUpdate();
+        comandoItem.setInt(1, emprestimo.getId());
+        comandoItem.setInt(2, item.getLivro().getId());
+        comandoItem.setDate(3, new java.sql.Date(item.getDataPrevista().getTime()));
+        comandoItem.setNull(4, java.sql.Types.DATE); // Data Devolução nasce NULL
+        comandoItem.executeUpdate();
 
         // b) Update na tabela livro (Disponivel = FALSE/0)
-        pstmStock.setInt(1, 0); // 0 = Indisponível
-        pstmStock.setInt(2, item.getLivro().getId());
-        pstmStock.executeUpdate();
+        comandoStock.setInt(1, 0); // 0 = Indisponível
+        comandoStock.setInt(2, item.getLivro().getId());
+        comandoStock.executeUpdate();
       }
     }
   }

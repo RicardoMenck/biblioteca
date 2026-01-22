@@ -37,8 +37,8 @@ public class AreaDAO {
 
     try {
       conexao = ConexaoFactory.getConexao();
-      // Flag RETURN_GENERATED_KEYS é vital para recuperar o ID criado pelo
-      // AutoIncrement
+
+      // RETURN_GENERATED_KEYS é vital para recuperar o ID
       comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
 
       comando.setString(1, area.getNome());

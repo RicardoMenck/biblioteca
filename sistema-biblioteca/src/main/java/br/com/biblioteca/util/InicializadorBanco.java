@@ -11,7 +11,7 @@ public class InicializadorBanco {
     // Lista ordenada para respeitar as dependências (FKs)
     List<String> sqls = List.of(
 
-        // 1. Tabela AREA
+        // 1. Tabela AREA check
         """
             CREATE TABLE IF NOT EXISTS area (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,7 +20,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 2. Tabela AUTOR
+        // 2. Tabela AUTOR check
         """
             CREATE TABLE IF NOT EXISTS autor (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +41,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 4. Tabela TITULO
+        // 4. Tabela TITULO check
         """
             CREATE TABLE IF NOT EXISTS titulo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +55,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 5. Tabela Associativa TITULO_AUTOR
+        // 5. Tabela Associativa TITULO_AUTOR check
         """
             CREATE TABLE IF NOT EXISTS titulo_autor (
                 id_titulo INTEGER,
@@ -66,7 +66,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 6. Tabela LIVRO (Exemplar Físico)
+        // 6. Tabela LIVRO (Exemplar Físico) check
         """
             CREATE TABLE IF NOT EXISTS livro (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +77,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 7. Tabela EMPRESTIMO
+        // 7. Tabela EMPRESTIMO check
         """
             CREATE TABLE IF NOT EXISTS emprestimo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +88,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 8. Tabela ITEM_EMPRESTIMO (Detalhe do Empréstimo)
+        // 8. Tabela ITEM_EMPRESTIMO (Detalhe do Empréstimo) check
         """
             CREATE TABLE IF NOT EXISTS item_emprestimo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,7 +101,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 9. Tabela DEVOLUCAO (Relação 1:1 com Empréstimo)
+        // 9. Tabela DEVOLUCAO (Relação 1:1 com Empréstimo) check
         """
             CREATE TABLE IF NOT EXISTS devolucao (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +112,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 10. Tabela ITEM_DEVOLUCAO (Detalhe da multa por livro)
+        // 10. Tabela ITEM_DEVOLUCAO (Detalhe da multa por livro) check
         """
             CREATE TABLE IF NOT EXISTS item_devolucao (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -126,7 +126,7 @@ public class InicializadorBanco {
             );
             """,
 
-        // 11. Tabela DEBITO (Financeiro)
+        // 11. Tabela DEBITO (Financeiro) check
         """
             CREATE TABLE IF NOT EXISTS debito (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +145,7 @@ public class InicializadorBanco {
                 data_reserva DATE NOT NULL,
                 ativa INTEGER DEFAULT 1,     -- 1 = True (Ativa/Aguardando), 0 = False (Finalizada/Cancelada)
                 FOREIGN KEY (id_aluno) REFERENCES aluno(id),
-                FOREIGN KEY (id_livro) REFERENCES titulo(id)
+                FOREIGN KEY (id_titulo) REFERENCES titulo(id)
             );
             """);
 

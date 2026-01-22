@@ -83,24 +83,24 @@ public class DevolucaoDAO {
 
   private void salvarItens(Connection conexao, Devolucao devolucao) throws SQLException {
     // Prepara os Statements fora do loop para performance
-    try (PreparedStatement pstmItemDev = conexao.prepareStatement(SQL_INSERT_ITEM_DEV);
-        PreparedStatement pstmUpdateItemEmp = conexao.prepareStatement(SQL_UPDATE_ITEM_EMP);
+    try (PreparedStatement comandoItemDev = conexao.prepareStatement(SQL_INSERT_ITEM_DEV);
+        PreparedStatement comandoItemEmp = conexao.prepareStatement(SQL_UPDATE_ITEM_EMP);
         PreparedStatement pstmUpdateLivro = conexao.prepareStatement(SQL_UPDATE_LIVRO_DISPONIVEL)) {
 
       for (ItemDevolucao item : devolucao.getItens()) {
 
         // 1. Insere registro na tabela item_devolucao
-        pstmItemDev.setInt(1, devolucao.getId());
-        pstmItemDev.setInt(2, item.getItemEmprestimo().getId());
-        pstmItemDev.setDate(3, new java.sql.Date(item.getDataDevolucao().getTime()));
-        pstmItemDev.setInt(4, item.getDiasAtraso());
-        pstmItemDev.setDouble(5, item.getValorMulta());
-        pstmItemDev.executeUpdate();
+        comandoItemDev.setInt(1, devolucao.getId());
+        comandoItemDev.setInt(2, item.getItemEmprestimo().getId());
+        comandoItemDev.setDate(3, new java.sql.Date(item.getDataDevolucao().getTime()));
+        comandoItemDev.setInt(4, item.getDiasAtraso());
+        comandoItemDev.setDouble(5, item.getValorMulta());
+        comandoItemDev.executeUpdate();
 
         // 2. Atualiza o registro original em item_emprestimo (data que foi entregue)
-        pstmUpdateItemEmp.setDate(1, new java.sql.Date(item.getDataDevolucao().getTime()));
-        pstmUpdateItemEmp.setInt(2, item.getItemEmprestimo().getId());
-        pstmUpdateItemEmp.executeUpdate();
+        comandoItemEmp.setDate(1, new java.sql.Date(item.getDataDevolucao().getTime()));
+        comandoItemEmp.setInt(2, item.getItemEmprestimo().getId());
+        comandoItemEmp.executeUpdate();
 
         // 3. Libera o Livro físico (id vem do itemEmprestimo -> Livro)
         pstmUpdateLivro.setInt(1, item.getItemEmprestimo().getLivro().getId());

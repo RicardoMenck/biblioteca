@@ -22,11 +22,8 @@ public class TituloDAO {
       "LEFT JOIN area a ON t.id_area = a.id";
 
   private static final String SQL_SELECT_BY_ID = SQL_SELECT_ALL + " WHERE t.id = ?";
-
   private static final String SQL_INSERT = "INSERT INTO titulo (nome, prazo, isbn, edicao, ano, id_area) VALUES (?, ?, ?, ?, ?, ?)";
-
   private static final String SQL_UPDATE = "UPDATE titulo SET nome=?, prazo=?, isbn=?, edicao=?, ano=?, id_area=? WHERE id=?";
-
   private static final String SQL_DELETE = "DELETE FROM titulo WHERE id=?";
 
   // --- SQLs DE ASSOCIAÇÃO (N:N com Autores) ---
@@ -37,8 +34,6 @@ public class TituloDAO {
   private static final String SQL_SELECT_AUTORES = "SELECT au.* FROM autor au " +
       "INNER JOIN titulo_autor ta ON au.id = ta.id_autor " +
       "WHERE ta.id_titulo = ?";
-
-  // --- MÉTODOS CRUD ---
 
   public void salvar(Titulo titulo) throws SQLException {
     if (titulo.getId() == null || titulo.getId() == 0) {
@@ -106,9 +101,9 @@ public class TituloDAO {
 
       // 2. Estratégia Simples de Update N:N: Remove tudo e insere de novo
       // (Evita ter que checar um por um qual foi removido/adicionado)
-      try (PreparedStatement pstmDel = conexao.prepareStatement(SQL_DELETE_AUTORES)) {
-        pstmDel.setInt(1, titulo.getId());
-        pstmDel.executeUpdate();
+      try (PreparedStatement comandoDel = conexao.prepareStatement(SQL_DELETE_AUTORES)) {
+        comandoDel.setInt(1, titulo.getId());
+        comandoDel.executeUpdate();
       }
 
       // 3. Reinsere a lista atualizada

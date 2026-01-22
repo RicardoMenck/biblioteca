@@ -12,7 +12,6 @@ import java.util.List;
 
 public class AutorDAO {
 
-  // --- SQL CONSTANTS ---
   private static final String SQL_INSERT = "INSERT INTO autor (nome, sobrenome, titulacao) VALUES (?, ?, ?)";
   private static final String SQL_UPDATE = "UPDATE autor SET nome = ?, sobrenome = ?, titulacao = ? WHERE id = ?";
   private static final String SQL_DELETE = "DELETE FROM autor WHERE id = ?";
@@ -104,7 +103,6 @@ public class AutorDAO {
     return null;
   }
 
-  // --- Helper Method ---
   private Autor mapearAutor(ResultSet rs) throws SQLException {
     Autor autor = new Autor();
     autor.setId(rs.getInt("id"));
