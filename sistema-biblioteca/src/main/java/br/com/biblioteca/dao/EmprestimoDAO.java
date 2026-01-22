@@ -1,5 +1,11 @@
 package br.com.biblioteca.dao;
 
+import br.com.biblioteca.factory.ConexaoFactory;
+import br.com.biblioteca.model.Aluno;
+import br.com.biblioteca.model.Emprestimo;
+import br.com.biblioteca.model.ItemEmprestimo;
+import br.com.biblioteca.model.Livro;
+import br.com.biblioteca.model.Titulo;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,243 +14,206 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.com.biblioteca.model.Emprestimo;
-import br.com.biblioteca.model.ItemEmprestimo;
-import br.com.biblioteca.model.Livro;
-import br.com.biblioteca.util.ConexaoBD;
-
 public class EmprestimoDAO {
 
-  public void salvar(Emprestimo emprestimo) {
-    String sqlEmprestimo = "INSERT INTO emprestimo (ra_aluno, data_emprestimo, data_prevista_devolucao) VALUES (?, ?, ?)";
-    String sqlItem = "INSERT INTO item_emprestimo (id_emprestimo, id_livro, data_devolucao_real) VALUES (?, ?, ?)";
+  // --- SQLs ---
+  // Join com Aluno para saber o nome de quem pegou na listagem
+  private static final String SQL_SELECT_ALL = "SELECT e.*, a.nome as nome_aluno, a.ra " +
+      "FROM emprestimo e " +
+      "INNER JOIN aluno a ON e.id_aluno = a.id " +
+      "ORDER BY e.data_emprestimo DESC";
 
+  private static final String SQL_SELECT_BY_ID = "SELECT e.*, a.nome as nome_aluno, a.ra " +
+      "FROM emprestimo e " +
+      "INNER JOIN aluno a ON e.id_aluno = a.id " +
+      "WHERE e.id = ?";
+
+  private static final String SQL_INSERT = "INSERT INTO emprestimo (id_aluno, data_emprestimo, data_prevista) VALUES (?, ?, ?)";
+
+  // Itens
+  private static final String SQL_INSERT_ITEM = "INSERT INTO item_emprestimo (id_emprestimo, id_livro, data_prevista, data_devolucao) VALUES (?, ?, ?, ?)";
+
+  private static final String SQL_SELECT_ITENS_POR_EMPRESTIMO = "SELECT ie.*, l.id as id_livro_real, t.nome as nome_titulo "
+      +
+      "FROM item_emprestimo ie " +
+      "INNER JOIN livro l ON ie.id_livro = l.id " +
+      "INNER JOIN titulo t ON l.id_titulo = t.id " +
+      "WHERE ie.id_emprestimo = ?";
+
+  // Atualização de Estoque
+  private static final String SQL_UPDATE_DISPONIBILIDADE_LIVRO = "UPDATE livro SET disponivel = ? WHERE id = ?";
+
+  // --- MÉTODOS ---
+
+  public void salvar(Emprestimo emprestimo) throws SQLException {
+    // Empréstimos geralmente só são criados (Insert).
+    // Edição de empréstimo é raro (geralmente se cancela e faz outro),
+    // mas aqui vamos focar no INSERT que é o fluxo principal.
+    if (emprestimo.getId() == null) {
+      this.inserir(emprestimo);
+    } else {
+      throw new SQLException("Edição de Empréstimo não implementada por segurança. Cancele e faça um novo.");
+    }
+  }
+
+  private void inserir(Emprestimo emprestimo) throws SQLException {
     Connection conexao = null;
-    PreparedStatement psEmprestimo = null;
-    PreparedStatement psItem = null;
+    PreparedStatement comando = null;
+    ResultSet rs = null;
 
     try {
-      conexao = ConexaoBD.getInstancia().getConexao();
-      conexao.setAutoCommit(false);
+      conexao = ConexaoFactory.getConexao();
+      conexao.setAutoCommit(false); // INÍCIO DA TRANSAÇÃO
 
-      // Passo A: Salvar Cabeçalho
-      psEmprestimo = conexao.prepareStatement(sqlEmprestimo, Statement.RETURN_GENERATED_KEYS);
-      psEmprestimo.setString(1, emprestimo.getNome());
+      // 1. Insere o Cabeçalho (Emprestimo)
+      comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
+      comando.setInt(1, emprestimo.getAluno().getId());
+      comando.setDate(2, new java.sql.Date(emprestimo.getDataEmprestimo().getTime()));
 
-      long dtEmp = (emprestimo.getDataEmprestimo() != null) ? emprestimo.getDataEmprestimo().getTime()
-          : System.currentTimeMillis();
-      long dtPrev = (emprestimo.getDataPrevista() != null) ? emprestimo.getDataPrevista().getTime()
-          : System.currentTimeMillis();
-
-      psEmprestimo.setLong(2, dtEmp);
-      psEmprestimo.setLong(3, dtPrev);
-
-      psEmprestimo.executeUpdate();
-
-      try (ResultSet rs = psEmprestimo.getGeneratedKeys()) {
-        if (rs.next()) {
-          emprestimo.setEmprestimo(rs.getInt(1));
-        }
+      // Data prevista geral (pode ser null se definida só nos itens, mas salvamos por
+      // segurança)
+      if (emprestimo.getDataPrevista() != null) {
+        comando.setDate(3, new java.sql.Date(emprestimo.getDataPrevista().getTime()));
+      } else {
+        comando.setNull(3, java.sql.Types.DATE);
       }
 
-      // Passo B: Salvar Itens
-      psItem = conexao.prepareStatement(sqlItem);
+      comando.executeUpdate();
 
-      for (ItemEmprestimo item : emprestimo.getItens()) {
-        psItem.setInt(1, emprestimo.getEmprestimo());
-        psItem.setInt(2, item.getLivro().getId());
-
-        long dtDevReal = (item.getDataDevolucao() != null) ? item.getDataDevolucao().getTime() : 0;
-        psItem.setLong(3, dtDevReal);
-
-        psItem.addBatch();
+      rs = comando.getGeneratedKeys();
+      if (rs.next()) {
+        emprestimo.setId(rs.getInt(1));
       }
-      psItem.executeBatch();
 
-      conexao.commit();
+      // 2. Insere os Itens e Baixa o Estoque
+      salvarItens(conexao, emprestimo);
+
+      conexao.commit(); // EFETIVA TUDO
+      System.out.println("Empréstimo #" + emprestimo.getId() + " realizado com sucesso!");
 
     } catch (SQLException e) {
-      if (conexao != null) {
-        try {
-          conexao.rollback();
-        } catch (SQLException ex) {
-          ex.printStackTrace();
-        }
-      }
-      throw new RuntimeException("Erro ao realizar empréstimo: " + e.getMessage());
+      if (conexao != null)
+        conexao.rollback(); // DESFAZ TUDO EM CASO DE ERRO
+      throw e;
     } finally {
-      try {
-        if (psEmprestimo != null)
-          psEmprestimo.close();
-        if (psItem != null)
-          psItem.close();
-        if (conexao != null)
-          conexao.setAutoCommit(true);
-      } catch (SQLException e) {
-        e.printStackTrace();
+      if (conexao != null)
+        conexao.setAutoCommit(true);
+      if (rs != null)
+        rs.close();
+      if (comando != null)
+        comando.close();
+      // Connection fica aberta (Factory/Singleton)
+    }
+  }
+
+  /**
+   * Método privado que percorre a lista de livros, salva na tabela de ligação
+   * e atualiza o status do livro físico.
+   */
+  private void salvarItens(Connection conexao, Emprestimo emprestimo) throws SQLException {
+    if (emprestimo.getItens() == null || emprestimo.getItens().isEmpty()) {
+      return;
+    }
+
+    try (PreparedStatement pstmItem = conexao.prepareStatement(SQL_INSERT_ITEM);
+        PreparedStatement pstmStock = conexao.prepareStatement(SQL_UPDATE_DISPONIBILIDADE_LIVRO)) {
+
+      for (ItemEmprestimo item : emprestimo.getItens()) {
+        // a) Insert na tabela item_emprestimo
+        pstmItem.setInt(1, emprestimo.getId());
+        pstmItem.setInt(2, item.getLivro().getId());
+        pstmItem.setDate(3, new java.sql.Date(item.getDataPrevista().getTime()));
+        pstmItem.setNull(4, java.sql.Types.DATE); // Data Devolução nasce NULL
+        pstmItem.executeUpdate();
+
+        // b) Update na tabela livro (Disponivel = FALSE/0)
+        pstmStock.setInt(1, 0); // 0 = Indisponível
+        pstmStock.setInt(2, item.getLivro().getId());
+        pstmStock.executeUpdate();
       }
     }
   }
 
-  public List<Emprestimo> listarTodos() {
+  public List<Emprestimo> listarTodos() throws SQLException {
     List<Emprestimo> lista = new ArrayList<>();
-    String sql = "SELECT * FROM emprestimo";
-
-    // 1. AQUI A CONEXÃO É ABERTA
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql);
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ALL);
         ResultSet rs = comando.executeQuery()) {
 
       while (rs.next()) {
-        Emprestimo e = new Emprestimo();
-        e.setEmprestimo(rs.getInt("id"));
-        e.setNome(rs.getString("ra_aluno"));
-
-        long dtEmp = rs.getLong("data_emprestimo");
-        if (dtEmp > 0)
-          e.setDataEmprestimo(new java.util.Date(dtEmp));
-
-        long dtPrev = rs.getLong("data_prevista_devolucao");
-        if (dtPrev > 0)
-          e.setDataPrevista(new java.util.Date(dtPrev));
-
-        // 2. PASSAMOS A CONEXÃO (conexao) COMO PARÂMETRO
-        // Assim o método filho usa a mesma conexão sem fechar ela.
-        e.setItens(buscarItensPorEmprestimo(conexao, e.getEmprestimo()));
-
-        lista.add(e);
+        lista.add(mapearEmprestimo(rs));
+        // Nota: Por performance, NÃO carregamos os itens aqui (Lazy Loading).
+        // Se precisar ver os livros, chamamos buscarPorId ou um método específico.
       }
-
-    } catch (SQLException e) {
-      e.printStackTrace(); // Ajuda a ver o erro no console
-      throw new RuntimeException("Erro ao listar empréstimos: " + e.getMessage());
     }
     return lista;
   }
 
-  // MUDANÇA NA ASSINATURA: Recebe a Connection
-  private List<ItemEmprestimo> buscarItensPorEmprestimo(Connection conexao, int idEmprestimo) {
-    List<ItemEmprestimo> itens = new ArrayList<>();
-    String sql = """
-            SELECT item.id as item_id, item.data_devolucao_real,
-                   livro.id as livro_id, livro.exemplar_biblioteca,
-                   titulo.id as titulo_id, titulo.nome as titulo_nome, titulo.prazo
-              FROM item_emprestimo item
-             INNER JOIN livro ON item.id_livro = livro.id
-             INNER JOIN titulo ON livro.id_titulo = titulo.id
-             WHERE item.id_emprestimo = ?
-        """;
+  public Emprestimo buscarPorId(int id) throws SQLException {
+    Emprestimo emp = null;
+    Connection conexao = null;
+    PreparedStatement comando = null;
+    ResultSet rs = null;
 
-    // NÃO USAMOS try-with-resources na Conexão aqui!
-    // Apenas no PreparedStatement
-    try (PreparedStatement comando = conexao.prepareStatement(sql)) {
+    try {
+      conexao = ConexaoFactory.getConexao();
+      comando = conexao.prepareStatement(SQL_SELECT_BY_ID);
+      comando.setInt(1, id);
+      rs = comando.executeQuery();
 
-      comando.setInt(1, idEmprestimo);
-
-      try (ResultSet rs = comando.executeQuery()) {
-        while (rs.next()) {
-          br.com.biblioteca.model.Titulo t = new br.com.biblioteca.model.Titulo();
-          t.setId(rs.getInt("titulo_id"));
-          t.setNome(rs.getString("titulo_nome"));
-          t.setPrazo(rs.getInt("prazo"));
-
-          Livro l = new Livro();
-          l.setId(rs.getInt("livro_id"));
-          l.setExemplarBiblioteca(rs.getInt("exemplar_biblioteca") == 1);
-          l.setTitulo(t);
-
-          ItemEmprestimo item = new ItemEmprestimo();
-          item.setId(rs.getInt("item_id"));
-          item.setLivro(l);
-
-          long dtDev = rs.getLong("data_devolucao_real");
-          if (dtDev > 0)
-            item.setDataDevolucao(new java.util.Date(dtDev));
-
-          itens.add(item);
-        }
+      if (rs.next()) {
+        emp = mapearEmprestimo(rs);
+        // Aqui sim: Carregamos os itens porque estamos vendo o detalhe
+        carregarItens(conexao, emp);
       }
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao buscar itens do empréstimo: " + e.getMessage());
+    } finally {
+      if (rs != null)
+        rs.close();
+      if (comando != null)
+        comando.close();
     }
-    return itens;
+    return emp;
   }
 
-  // --- Adicione estes métodos no final da classe EmprestimoDAO ---
-
-  // 1. Busca apenas os itens que NÃO foram devolvidos de um aluno
-  public List<ItemEmprestimo> buscarPendenciasPorAluno(String raAluno) {
-    List<ItemEmprestimo> pendencias = new ArrayList<>();
-
-    // Query que cruza Item -> Emprestimo -> Livro -> Titulo
-    String sql = """
-            SELECT item.id AS item_id,
-                   t.nome AS titulo_nome,
-                   e.data_emprestimo,
-                   e.data_prevista_devolucao
-              FROM item_emprestimo item
-             INNER JOIN emprestimo e ON item.id_emprestimo = e.id
-             INNER JOIN livro l ON item.id_livro = l.id
-             INNER JOIN titulo t ON l.id_titulo = t.id
-             WHERE e.ra_aluno = ?
-               AND (item.data_devolucao_real IS NULL OR item.data_devolucao_real = 0)
-        """;
-
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql)) {
-
-      comando.setString(1, raAluno);
-
+  // Carrega os livros associados a este empréstimo
+  private void carregarItens(Connection conexao, Emprestimo emp) throws SQLException {
+    try (PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ITENS_POR_EMPRESTIMO)) {
+      comando.setInt(1, emp.getId());
       try (ResultSet rs = comando.executeQuery()) {
         while (rs.next()) {
-          // Monta um objeto híbrido só para exibir na tela
           ItemEmprestimo item = new ItemEmprestimo();
-          item.setId(rs.getInt("item_id"));
+          item.setId(rs.getInt("id"));
+          item.setDataPrevista(rs.getDate("data_prevista"));
+          item.setDataDevolucao(rs.getDate("data_devolucao"));
+          item.setEmprestimo(emp); // Referência circular controlada
 
-          // Truque: Usamos o objeto Livro/Titulo só para carregar o nome da obra
-          br.com.biblioteca.model.Titulo t = new br.com.biblioteca.model.Titulo();
-          t.setNome(rs.getString("titulo_nome"));
+          // Monta o Livro (Mínimo necessário)
+          Livro livro = new Livro();
+          livro.setId(rs.getInt("id_livro_real"));
+          Titulo titulo = new Titulo();
+          titulo.setNome(rs.getString("nome_titulo")); // Join
+          livro.setTitulo(titulo);
 
-          Livro l = new Livro();
-          l.setTitulo(t);
-          item.setLivro(l);
-
-          // Carrega as datas (convertendo de Long)
-          long dtEmp = rs.getLong("data_emprestimo");
-          long dtPrev = rs.getLong("data_prevista_devolucao");
-
-          // Colocamos essas datas temporariamente no item (ou poderíamos criar um DTO)
-          // Aqui, vamos assumir que quem chama sabe que essas datas pertencem ao
-          // Empréstimo pai.
-          // Para simplificar a tela, vamos usar setDataDevolucao para guardar a PREVISTA
-          // (gambiarra visual)
-          if (dtPrev > 0)
-            item.setDataDevolucao(new java.util.Date(dtPrev));
-
-          pendencias.add(item);
+          item.setLivro(livro);
+          emp.getItens().add(item);
         }
       }
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao buscar pendências: " + e.getMessage());
     }
-    return pendencias;
   }
 
-  // 2. Registra a devolução (UPDATE)
-  public void registrarDevolucao(int idItem, java.util.Date dataDevolucao) {
-    String sql = "UPDATE item_emprestimo SET data_devolucao_real = ? WHERE id = ?";
+  private Emprestimo mapearEmprestimo(ResultSet rs) throws SQLException {
+    Emprestimo emprestimo = new Emprestimo();
+    emprestimo.setId(rs.getInt("id"));
+    emprestimo.setDataEmprestimo(rs.getDate("data_emprestimo"));
+    emprestimo.setDataPrevista(rs.getDate("data_prevista"));
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql)) {
+    // Monta o Aluno com dados do Join
+    Aluno a = new Aluno();
+    a.setId(rs.getInt("id_aluno"));
+    a.setNome(rs.getString("nome_aluno"));
+    a.setRa(rs.getString("ra"));
+    emprestimo.setAluno(a);
 
-      long millis = dataDevolucao.getTime();
-      comando.setLong(1, millis);
-      comando.setInt(2, idItem);
-
-      comando.executeUpdate();
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao devolver item: " + e.getMessage());
-    }
+    return emprestimo;
   }
 }

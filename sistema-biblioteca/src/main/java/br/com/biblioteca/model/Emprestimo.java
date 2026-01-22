@@ -6,6 +6,10 @@ import java.util.Date;
 import java.util.List;
 
 public class Emprestimo {
+
+  private static final int QTD_MINIMA_PARA_BONUS = 2; // Acima de 2 livros
+  private static final int DIAS_BONUS_POR_LIVRO = 2; // Ganha 2 dias por livro extra
+
   private Integer id; // id
   private Date dataEmprestimo;
   private Date dataPrevista;
@@ -41,8 +45,8 @@ public class Emprestimo {
       return false;
     }
 
-    // 2. Chama o SEU método de cálculo para definir as datas
-    this.dataPrevista = this.calculaDataDevolucao();
+    // Passo 2: Calcular data final considerando a regra de bônus
+    this.definirDatasComRegraDeBonus();
 
     return true;
   }
@@ -51,45 +55,49 @@ public class Emprestimo {
    * Lógica de cálculo de datas com regra de bônus.
    * (Sua implementação com correções de sintaxe Java)
    */
-  private Date calculaDataDevolucao() {
-    Date date = this.dataEmprestimo; // Data base é a do empréstimo (hoje)
-    Date dataPrevistaCalc = this.dataEmprestimo; // Inicializa segura para comparação
+  /**
+   * Lógica segregada para cálculo de datas.
+   * Evita números mágicos e centraliza a regra de negócio.
+   */
+  private void definirDatasComRegraDeBonus() {
+    Date maiorDataEncontrada = this.dataEmprestimo;
 
-    // 1. Itera para encontrar a data mais distante entre os livros
+    // 1. Encontra a data mais distante entre os livros selecionados
     for (ItemEmprestimo item : this.itens) {
-      // O Item calcula a data dele baseada no prazo do título
-      Date data_aux = item.calculaDataDevolucao(date);
-
-      // Se a data calculada do item for maior que a prevista atual, atualiza
-      if (data_aux.compareTo(dataPrevistaCalc) > 0) {
-        dataPrevistaCalc = data_aux;
+      // Usa a data que o item já calculou ao nascer
+      if (item.getDataPrevista() != null && item.getDataPrevista().after(maiorDataEncontrada)) {
+        maiorDataEncontrada = item.getDataPrevista();
       }
     }
 
-    // 2. Regra extra: Se levar mais de 2 livros, ganha prazo extra
-    if (this.itens.size() > 2) {
-      int tam = this.itens.size() - 2;
+    // 2. Aplica a REGRA DE BÔNUS (Se levar mais de 2 livros)
+    if (this.itens.size() > QTD_MINIMA_PARA_BONUS) {
+      int livrosExtras = this.itens.size() - QTD_MINIMA_PARA_BONUS;
+      int diasBonusTotal = livrosExtras * DIAS_BONUS_POR_LIVRO;
+
       Calendar calendar = Calendar.getInstance();
-      calendar.setTime(dataPrevistaCalc);
-      calendar.add(Calendar.DATE, (tam * 2)); // Adiciona 2 dias para cada livro extra além de 2
-      dataPrevistaCalc = calendar.getTime();
+      calendar.setTime(maiorDataEncontrada);
+      calendar.add(Calendar.DAY_OF_MONTH, diasBonusTotal);
+
+      maiorDataEncontrada = calendar.getTime(); // Nova data estendida
     }
 
-    // 3. Atualiza a data PREVISTA em todos os itens para ficarem iguais ao
-    // empréstimo
-    // Assim, todos os livros desse pacote devem ser devolvidos juntos na data
-    // bonificada
+    // 3. Unifica os prazos: Todos os itens vencem na mesma data (a bonificada)
     for (ItemEmprestimo item : this.itens) {
-      item.setDataPrevista(dataPrevistaCalc);
-      // OBS: Não usamos setDataDevolucao aqui para não dar baixa automática
+      item.setDataPrevista(maiorDataEncontrada);
     }
 
-    return dataPrevistaCalc;
+    // Atualiza a data do cabeçalho do empréstimo
+    this.dataPrevista = maiorDataEncontrada;
   }
 
   public void adicionarItem(ItemEmprestimo item) {
-    item.setEmprestimo(this);
     this.itens.add(item);
+  }
+
+  @Override
+  public String toString() {
+    return "Empréstimo #" + id + " - " + (aluno != null ? aluno.getNome() : "Sem Aluno");
   }
 
   public Integer getId() {
@@ -131,7 +139,5 @@ public class Emprestimo {
   public void setItens(List<ItemEmprestimo> itens) {
     this.itens = itens;
   }
-
-  // Get e Set
 
 }

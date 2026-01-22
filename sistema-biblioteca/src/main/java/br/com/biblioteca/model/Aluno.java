@@ -1,12 +1,11 @@
 package br.com.biblioteca.model;
 
 import java.time.Year;
-import java.util.List;
 import java.util.Random;
 
 public class Aluno {
   private Integer id;
-  private Integer matricula;
+  private String ra;
   private String nome;
   private String cpf;
   private String endereco;
@@ -20,46 +19,29 @@ public class Aluno {
     this.nome = nome;
     this.cpf = cpf;
     this.endereco = endereco;
-    this.gerarNovaMatricula(); // Gera matrícula automaticamente ao criar
+    this.gerarNovoRA(); // Gera ra automaticamente ao criar
   }
 
-  public boolean verificaAluno() {
-    if (this.matricula == null) {
-      return false;
-    }
-    return true;
+  // Construtor do banco
+  public Aluno(Integer id, String ra, String nome, String cpf, String endereco) {
+    this.id = id;
+    this.ra = ra;
+    this.nome = nome;
+    this.cpf = cpf;
+    this.endereco = endereco;
   }
 
-  public boolean verificaDebito() {
-    // Instancia o objeto Débito passando o ID deste aluno
-    Debito debito = new Debito(this.id);
-
-    return debito.verificaDebito();
-  }
-
-  public boolean emprestar(List<Livro> livros) {
-    // Validações prévias do aluno antes de tentar emprestar
-    if (!verificaAluno() || verificaDebito()) {
-      return false; // Bloqueia se aluno inválido ou com débito
-    }
-
-    // Instancia o objeto Emprestimo
-    Emprestimo emprestimo = new Emprestimo();
-
-    // Configura este aluno no empréstimo
-    emprestimo.setAluno(this);
-
-    // Chama o método emprestar da classe Emprestimo delegando a lista
-    return emprestimo.emprestar(livros);
-  }
-
-  public void gerarNovaMatricula() {
+  public void gerarNovoRA() {
     int ano = Year.now().getValue();
     int mes = java.time.LocalDate.now().getMonthValue();
     int sequencial = new Random().nextInt(9000) + 1000;
 
-    String matriculaGerada = String.format("%d%02d%d", ano, mes, sequencial);
-    this.matricula = Integer.parseInt(matriculaGerada);
+    // Gera a String formatada. Ex: "2026019999"
+    this.ra = String.format("%d%02d%d", ano, mes, sequencial);
+  }
+
+  public boolean isValido() {
+    return this.nome != null && !this.nome.isEmpty() && this.ra != null;
   }
 
   public Integer getId() {
@@ -70,12 +52,12 @@ public class Aluno {
     this.id = id;
   }
 
-  public Integer getMatricula() {
-    return matricula;
+  public String getRa() {
+    return ra;
   }
 
-  public void setMatricula(Integer matricula) {
-    this.matricula = matricula;
+  public void setRa(String ra) {
+    this.ra = ra;
   }
 
   public String getNome() {
@@ -104,7 +86,7 @@ public class Aluno {
 
   @Override
   public String toString() {
-    return this.matricula + " - " + this.nome;
+    return this.ra + " - " + this.nome;
   }
 
 }

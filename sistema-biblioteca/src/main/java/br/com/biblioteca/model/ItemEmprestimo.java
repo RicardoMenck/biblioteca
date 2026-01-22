@@ -17,7 +17,9 @@ public class ItemEmprestimo {
   public ItemEmprestimo(Livro livro, Emprestimo emprestimo) {
     this.livro = livro;
     this.emprestimo = emprestimo;
-    this.dataDevolucao = null;
+    if (emprestimo != null) {
+      this.calculaDataDevolucao(emprestimo.getDataEmprestimo());
+    }
   }
 
   // public Date calculaDataDevolucao(Date data) {

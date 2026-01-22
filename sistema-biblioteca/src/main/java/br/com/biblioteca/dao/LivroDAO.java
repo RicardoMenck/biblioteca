@@ -1,187 +1,156 @@
 package br.com.biblioteca.dao;
 
+import br.com.biblioteca.factory.ConexaoFactory;
+import br.com.biblioteca.model.Livro;
+import br.com.biblioteca.model.Titulo;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement; // Importante para as chaves geradas
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.com.biblioteca.model.Livro;
-import br.com.biblioteca.model.Titulo;
-import br.com.biblioteca.util.ConexaoBD;
-
 public class LivroDAO {
 
-  public void salvar(Livro livro) {
-    // Validação: Não permite salvar sem um título válido
-    if (livro.getTitulo() == null || livro.getTitulo().getId() == 0) {
-      throw new RuntimeException("Erro: O livro precisa de um Título já cadastrado para ser salvo.");
-    }
+  // --- SQL CONSTANTS ---
+  // JOIN essencial: Traz o nome do título junto com os dados do livro físico
+  private static final String SQL_SELECT_ALL = "SELECT l.*, t.nome as nome_titulo, t.isbn " +
+      "FROM livro l " +
+      "INNER JOIN titulo t ON l.id_titulo = t.id";
 
-    String sql = "INSERT INTO livro(id_titulo, exemplar_biblioteca) VALUES (?, ?)";
+  private static final String SQL_SELECT_BY_ID = SQL_SELECT_ALL + " WHERE l.id = ?";
 
-    // Try-with-resources: Fecha o PreparedStatement automaticamente
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+  // Útil para ver quantos exemplares existem de um determinado título
+  private static final String SQL_SELECT_BY_TITULO = SQL_SELECT_ALL + " WHERE l.id_titulo = ?";
 
-      // --- CORREÇÃO AQUI ---
-      // O 1º parâmetro é 'id_titulo', então pegamos do objeto Titulo
-      comando.setInt(1, livro.getTitulo().getId());
+  private static final String SQL_INSERT = "INSERT INTO livro (id_titulo, disponivel, exemplar_biblioteca) VALUES (?, ?, ?)";
 
-      // O 2º parâmetro é o boolean convertido
-      comando.setInt(2, livro.isExemplarBiblioteca() ? 1 : 0);
+  private static final String SQL_UPDATE = "UPDATE livro SET id_titulo=?, disponivel=?, exemplar_biblioteca=? WHERE id=?";
 
-      comando.executeUpdate();
+  private static final String SQL_DELETE = "DELETE FROM livro WHERE id=?";
 
-      // Recupera o ID gerado para o Livro
-      try (ResultSet rs = comando.getGeneratedKeys()) {
-        if (rs.next()) {
-          livro.setId(rs.getInt(1));
-        }
-      }
+  // --- MÉTODOS CRUD ---
 
-      System.out.println("Exemplar (Livro) salvo com sucesso para o título ID: " + livro.getTitulo().getId());
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao salvar livro: " + e.getMessage());
+  public void salvar(Livro livro) throws SQLException {
+    if (livro.getId() == null || livro.getId() == 0) {
+      this.inserir(livro);
+    } else {
+      this.atualizar(livro);
     }
   }
 
-  public List<Livro> listarTodos() {
-    List<Livro> livros = new ArrayList<>();
-    String sql = """
-          SELECT livro.id as id_livro, livro.exemplar_biblioteca,
-                 titulo.id as id_titulo, titulo.nome as nome_titulo, titulo.prazo
-            FROM livro
-           INNER JOIN titulo ON livro.id_titulo = titulo.id;
-        """;
+  private void inserir(Livro livro) throws SQLException {
+    Connection conexao = null;
+    PreparedStatement comando = null;
+    ResultSet rs = null;
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql);
+    try {
+      conexao = ConexaoFactory.getConexao();
+      comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
+
+      comando.setInt(1, livro.getTitulo().getId());
+      // SQLite usa 0 ou 1. Convertemos o boolean do Java.
+      comando.setInt(2, livro.isDisponivel() ? 1 : 0);
+      comando.setInt(3, livro.isExemplarBiblioteca() ? 1 : 0);
+
+      comando.executeUpdate();
+
+      rs = comando.getGeneratedKeys();
+      if (rs.next()) {
+        livro.setId(rs.getInt(1));
+      }
+    } finally {
+      if (rs != null)
+        rs.close();
+      if (comando != null)
+        comando.close();
+    }
+  }
+
+  private void atualizar(Livro livro) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_UPDATE)) {
+
+      comando.setInt(1, livro.getTitulo().getId());
+      comando.setInt(2, livro.isDisponivel() ? 1 : 0);
+      comando.setInt(3, livro.isExemplarBiblioteca() ? 1 : 0);
+      comando.setInt(4, livro.getId());
+
+      comando.executeUpdate();
+    }
+  }
+
+  public void excluir(int id) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_DELETE)) {
+      comando.setInt(1, id);
+      comando.execute();
+    }
+  }
+
+  public List<Livro> listarTodos() throws SQLException {
+    List<Livro> livros = new ArrayList<>();
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ALL);
         ResultSet rs = comando.executeQuery()) {
 
       while (rs.next()) {
-        // Monta o objeto Titulo
-        Titulo t = new Titulo();
-        t.setId(rs.getInt("id_titulo"));
-        t.setNome(rs.getString("nome_titulo"));
-        t.setPrazo(rs.getInt("prazo"));
-
-        // Monta o objeto Livro com a composição
-        Livro l = new Livro();
-        l.setId(rs.getInt("id_livro"));
-        l.setExemplarBiblioteca(rs.getInt("exemplar_biblioteca") == 1);
-        l.setTitulo(t);
-
-        livros.add(l);
+        livros.add(mapearLivro(rs));
       }
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao listar livros: " + e.getMessage());
     }
     return livros;
   }
 
-  public Livro buscaPorId(int id) {
-    String sql = """
-        SELECT livro.id as id_livro, livro.exemplar_biblioteca,
-               titulo.id as id_titulo, titulo.nome as nome_titulo, titulo.prazo
-          FROM livro
-         INNER JOIN titulo ON livro.id_titulo = titulo.id
-         WHERE livro.id = ?
-        """;
+  // Busca todos os exemplares de um título específico (ex: todos os Harry Potter
+  // da estante)
+  public List<Livro> listarPorTitulo(int idTitulo) throws SQLException {
+    List<Livro> livros = new ArrayList<>();
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_BY_TITULO)) {
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql)) {
-
-      comando.setInt(1, id);
-
+      comando.setInt(1, idTitulo);
       try (ResultSet rs = comando.executeQuery()) {
-        if (rs.next()) {
-          Titulo t = new Titulo();
-          t.setId(rs.getInt("id_titulo"));
-          t.setNome(rs.getString("nome_titulo"));
-          t.setPrazo(rs.getInt("prazo"));
-
-          Livro l = new Livro();
-          l.setId(rs.getInt("id_livro"));
-          l.setExemplarBiblioteca(rs.getInt("exemplar_biblioteca") == 1);
-          l.setTitulo(t);
-          return l;
+        while (rs.next()) {
+          livros.add(mapearLivro(rs));
         }
       }
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao buscar livro: " + e.getMessage());
     }
+    return livros;
+  }
 
+  public Livro buscarPorId(int id) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_BY_ID)) {
+
+      comando.setInt(1, id);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next()) {
+          return mapearLivro(rs);
+        }
+      }
+    }
     return null;
   }
 
-  public void excluir(int id) {
-    String sql = "DELETE FROM livro WHERE id = ?";
+  // --- MÉTODOS AUXILIARES ---
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql)) {
+  private Livro mapearLivro(ResultSet rs) throws SQLException {
+    Livro livro = new Livro();
+    livro.setId(rs.getInt("id"));
 
-      comando.setInt(1, id);
-      comando.executeUpdate();
-      System.out.println("Livro excluído com sucesso!");
+    // Conversão int (0/1) -> boolean (false/true)
+    livro.setDisponivel(rs.getInt("disponivel") == 1);
+    livro.setExemplarBiblioteca(rs.getInt("exemplar_biblioteca") == 1);
 
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao excluir livro: " + e.getMessage());
-    }
-  }
+    // Monta o objeto Titulo com os dados que vieram no JOIN
+    Titulo titulo = new Titulo();
+    titulo.setId(rs.getInt("id_titulo"));
+    titulo.setNome(rs.getString("nome_titulo")); // Coluna do JOIN
+    titulo.setIsbn(rs.getString("isbn"));
 
-  // Adicione no final da classe LivroDAO, antes do último fecha-chaves
+    livro.setTitulo(titulo);
 
-  public List<Livro> listarDisponiveis() {
-    List<Livro> livros = new ArrayList<>();
-
-    // SQL PODEROSO:
-    // 1. Seleciona Livro + Titulo (JOIN)
-    // 2. Filtra: Não pode ser de biblioteca (exemplar_biblioteca = 0)
-    // 3. Filtra: O ID do livro NÃO PODE ESTAR (NOT IN) na lista de itens não
-    // devolvidos
-    String sql = """
-            SELECT l.id, l.exemplar_biblioteca, l.id_titulo,
-                   t.nome AS titulo_nome, t.prazo
-              FROM livro l
-             INNER JOIN titulo t ON l.id_titulo = t.id
-             WHERE l.exemplar_biblioteca = 0
-               AND l.id NOT IN (
-                   SELECT id_livro
-                     FROM item_emprestimo
-                    WHERE data_devolucao_real IS NULL
-                       OR data_devolucao_real = 0
-               )
-        """;
-
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql);
-        ResultSet rs = comando.executeQuery()) {
-
-      while (rs.next()) {
-        // Reconstrói o objeto Titulo
-        Titulo t = new Titulo();
-        t.setId(rs.getInt("id_titulo"));
-        t.setNome(rs.getString("titulo_nome"));
-        t.setPrazo(rs.getInt("prazo"));
-
-        // Reconstrói o Livro
-        Livro l = new Livro();
-        l.setId(rs.getInt("id"));
-        l.setExemplarBiblioteca(rs.getBoolean("exemplar_biblioteca"));
-        l.setTitulo(t);
-
-        livros.add(l);
-      }
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao buscar livros disponíveis: " + e.getMessage());
-    }
-    return livros;
+    return livro;
   }
 }

@@ -1,101 +1,65 @@
 package br.com.biblioteca.dao;
 
+import br.com.biblioteca.factory.ConexaoFactory;
+import br.com.biblioteca.model.Debito;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.com.biblioteca.model.Debito;
-import br.com.biblioteca.util.ConexaoBD;
-
 public class DebitoDAO {
 
-  public void salvar(Debito debito) {
-    String sql = "INSERT INTO debito (ra_aluno, valor, data_debito) VALUES (?, ?, ?)";
+  private static final String SQL_INSERT = "INSERT INTO debito (id_aluno, valor, data_debito) VALUES (?, ?, ?)";
+  private static final String SQL_SELECT_POR_ALUNO = "SELECT * FROM debito WHERE id_aluno = ?";
+  private static final String SQL_DELETE = "DELETE FROM debito WHERE id = ?"; // Usado para quitar a dívida
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+  public void salvar(Debito debito) throws SQLException {
+    try (Connection conn = ConexaoFactory.getConexao();
+        PreparedStatement pstm = conn.prepareStatement(SQL_INSERT)) {
 
-      comando.setString(1, debito.getRaAluno());
-      comando.setBigDecimal(2, debito.getValor());
-
-      // --- CORREÇÃO AQUI ---
-      // Em vez de brigar com String, salvamos os MILISEGUNDOS (Long).
-      // O SQLite aceita guardar número na coluna TEXT sem problemas.
-      long millis = (debito.getDataDebito() != null)
-          ? debito.getDataDebito().getTime()
-          : System.currentTimeMillis();
-
-      comando.setLong(3, millis); // Salva como número
-
-      comando.executeUpdate();
-
-      try (ResultSet rs = comando.getGeneratedKeys()) {
-        if (rs.next()) {
-          debito.setId(rs.getInt(1));
-        }
-      }
-    } catch (SQLException e) {
-      e.printStackTrace();
-      throw new RuntimeException("Erro ao salvar débito: " + e.getMessage());
+      pstm.setInt(1, debito.getCodigoAluno());
+      pstm.setDouble(2, debito.getValor());
+      pstm.setDate(3, new java.sql.Date(debito.getDataDebito().getTime()));
+      pstm.executeUpdate();
     }
   }
 
-  public List<Debito> listarPorAluno(String raAluno) {
+  /**
+   * Busca todas as dívidas de um aluno específico.
+   * Método vital para validar se ele pode emprestar livros.
+   */
+  public List<Debito> listarPorAluno(int idAluno) throws SQLException {
     List<Debito> debitos = new ArrayList<>();
-    String sql = "SELECT * FROM debito WHERE ra_aluno = ?";
+    try (Connection conn = ConexaoFactory.getConexao();
+        PreparedStatement pstm = conn.prepareStatement(SQL_SELECT_POR_ALUNO)) {
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql)) {
-
-      comando.setString(1, raAluno);
-
-      try (ResultSet rs = comando.executeQuery()) {
+      pstm.setInt(1, idAluno);
+      try (ResultSet rs = pstm.executeQuery()) {
         while (rs.next()) {
-          debitos.add(montarObjeto(rs));
+          Debito d = new Debito();
+          d.setId(rs.getInt("id"));
+          d.setCodigoAluno(rs.getInt("id_aluno"));
+          d.setValor(rs.getDouble("valor"));
+          d.setDataDebito(rs.getDate("data_debito"));
+          debitos.add(d);
         }
       }
-    } catch (SQLException e) {
-      e.printStackTrace();
-      throw new RuntimeException("Erro ao buscar débitos do aluno: " + e.getMessage());
     }
     return debitos;
   }
 
-  public List<Debito> listarTodos() {
-    List<Debito> debitos = new ArrayList<>();
-    String sql = "SELECT * FROM debito";
-
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql);
-        ResultSet rs = comando.executeQuery()) {
-
-      while (rs.next()) {
-        debitos.add(montarObjeto(rs));
-      }
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao listar débitos: " + e.getMessage());
+  /**
+   * Dar baixa (Quitar) um débito.
+   * Simplesmente removemos o registro. Num sistema contábil real,
+   * teríamos uma tabela de "Pagamentos" e mudaríamos status.
+   */
+  public void quitarDebito(int idDebito) throws SQLException {
+    try (Connection conn = ConexaoFactory.getConexao();
+        PreparedStatement pstm = conn.prepareStatement(SQL_DELETE)) {
+      pstm.setInt(1, idDebito);
+      pstm.executeUpdate();
     }
-    return debitos;
-  }
-
-  private Debito montarObjeto(ResultSet rs) throws SQLException {
-    String ra = rs.getString("ra_aluno");
-
-    Debito d = new Debito(ra);
-    d.setId(rs.getInt("id"));
-    d.setValor(rs.getBigDecimal("valor"));
-
-    // --- CORREÇÃO AQUI ---
-    // Lemos o número (Long) e transformamos de volta em Data
-    long millis = rs.getLong("data_debito");
-    if (millis > 0) {
-      d.setDataDebito(new java.util.Date(millis));
-    }
-
-    return d;
   }
 }

@@ -6,6 +6,7 @@ public class Reserva {
 
   private Integer id;
   private Date dataReserva;
+  private boolean ativa;
 
   // Relacionamentos essenciais
   private Aluno aluno;
@@ -22,6 +23,7 @@ public class Reserva {
     this.dataReserva = dataReserva;
     this.aluno = aluno;
     this.titulo = titulo;
+    this.ativa = true;
   }
 
   // --- MÉTODOS DE NEGÓCIO ---
@@ -81,4 +83,9 @@ public class Reserva {
   public void setTitulo(Titulo titulo) {
     this.titulo = titulo;
   }
+
+  public void setAtiva(boolean ativa) {
+    this.ativa = ativa;
+  }
+
 }

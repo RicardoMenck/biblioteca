@@ -1,19 +1,19 @@
 package br.com.biblioteca.model;
 
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 public class ItemDevolucao {
 
-  private Integer id;
-  private ItemEmprestimo itemEmprestimo; // Referência ao empréstimo original
-  private Devolucao devolucao; // Referência ao cabeçalho (Pai)
-  private Date dataDevolucao; // Data real que entregou
-  private Double valorMulta; // Multa específica deste livro
-  private int diasAtraso; // Quantos dias atrasou
+  // Configuração de banco no futuro
+  private static final double VALOR_MULTA_DIARIA = 2.00;
 
-  // Configuração de multa (poderia vir de um arquivo de config/banco)
-  private static final double MULTA_DIARIA = 2.50;
+  private Integer id;
+  private Date dataDevolucao;
+  private Integer diasAtraso;
+  private Double valorMulta;
+
+  private ItemEmprestimo itemEmprestimo;
+  private Devolucao devolucao;
 
   public ItemDevolucao() {
   }
@@ -21,9 +21,10 @@ public class ItemDevolucao {
   public ItemDevolucao(ItemEmprestimo itemEmprestimo, Devolucao devolucao) {
     this.itemEmprestimo = itemEmprestimo;
     this.devolucao = devolucao;
-    this.dataDevolucao = new Date(); // Data de hoje (momento da criação)
-    this.valorMulta = 0.0;
+    this.dataDevolucao = new Date(); // Assume que devolveu "agora"
     this.diasAtraso = 0;
+    this.valorMulta = 0.0;
+    this.calcularMulta();
   }
 
   // --- MÉTODOS DE NEGÓCIO ---
@@ -34,27 +35,34 @@ public class ItemDevolucao {
    */
   public void calcularMulta() {
     if (itemEmprestimo == null || itemEmprestimo.getDataPrevista() == null) {
+      this.zerarMulta();
       return;
     }
 
-    Date dataPrevista = itemEmprestimo.getDataPrevista();
+    Date prevista = itemEmprestimo.getDataPrevista();
+    Date entrega = this.dataDevolucao;
 
-    // Se a data de devolução for depois da prevista
-    if (this.dataDevolucao.after(dataPrevista)) {
-      // Cálculo da diferença em milissegundos
-      long diffEmMillies = Math.abs(this.dataDevolucao.getTime() - dataPrevista.getTime());
-      // Converte para dias
-      long diffEmDias = TimeUnit.DAYS.convert(diffEmMillies, TimeUnit.MILLISECONDS);
-
-      this.diasAtraso = (int) diffEmDias;
-      this.valorMulta = this.diasAtraso * MULTA_DIARIA;
-    } else {
-      this.diasAtraso = 0;
-      this.valorMulta = 0.0;
+    // Se a entrega foi ANTES ou IGUAL à prevista, não tem multa
+    if (!entrega.after(prevista)) {
+      this.zerarMulta();
+      return;
     }
+
+    // Pega a diferença em milissegundos
+    long diferenca = entrega.getTime() - prevista.getTime();
+
+    // Converte para dias (divide pelos milissegundos de um dia: 86.400.000)
+    // (1000ms * 60s * 60m * 24h)
+    int dias = (int) (diferenca / (1000 * 60 * 60 * 24));
+
+    this.diasAtraso = dias;
+    this.valorMulta = dias * VALOR_MULTA_DIARIA;
   }
 
-  // --- GETTERS E SETTERS ---
+  private void zerarMulta() {
+    this.diasAtraso = 0;
+    this.valorMulta = 0.0;
+  }
 
   public Integer getId() {
     return id;
@@ -86,6 +94,8 @@ public class ItemDevolucao {
 
   public void setDataDevolucao(Date dataDevolucao) {
     this.dataDevolucao = dataDevolucao;
+    // Se alterar a data de devolução manualmente, recalcula a multa
+    this.calcularMulta();
   }
 
   public Double getValorMulta() {

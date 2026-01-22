@@ -11,6 +11,12 @@ public class Livro {
     this.exemplarBiblioteca = false;
   }
 
+  public Livro(Titulo titulo, boolean disponivel, boolean exemplarBiblioteca) {
+    this.titulo = titulo;
+    this.disponivel = disponivel;
+    this.exemplarBiblioteca = exemplarBiblioteca;
+  }
+
   public Livro(Integer id, Titulo titulo, boolean disponivel, boolean exemplarBiblioteca) {
     this.id = id;
     this.titulo = titulo;

@@ -8,15 +8,15 @@ public class Area {
   public Area() {
   }
 
-  // Construtor para criação rápida
-  public Area(Integer id, String nome, String descricao) {
-    this.id = id;
+  // Construtor sem ID (para novos cadastros antes de ir pro banco)
+  public Area(String nome, String descricao) {
     this.nome = nome;
     this.descricao = descricao;
   }
 
-  // Construtor sem ID (para novos cadastros antes de ir pro banco)
-  public Area(String nome, String descricao) {
+  // Construtor para criação rápida
+  public Area(Integer id, String nome, String descricao) {
+    this.id = id;
     this.nome = nome;
     this.descricao = descricao;
   }

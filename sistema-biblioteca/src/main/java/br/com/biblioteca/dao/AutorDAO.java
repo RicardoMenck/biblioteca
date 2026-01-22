@@ -1,18 +1,40 @@
 package br.com.biblioteca.dao;
 
-import java.sql.*;
+import br.com.biblioteca.factory.ConexaoFactory;
+import br.com.biblioteca.model.Autor;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import br.com.biblioteca.model.Autor;
-import br.com.biblioteca.util.ConexaoBD;
 
 public class AutorDAO {
 
-  public void salvar(Autor autor) {
-    String sql = "INSERT INTO autor (nome, sobrenome, titulacao) VALUES (?, ?, ?)";
+  // --- SQL CONSTANTS ---
+  private static final String SQL_INSERT = "INSERT INTO autor (nome, sobrenome, titulacao) VALUES (?, ?, ?)";
+  private static final String SQL_UPDATE = "UPDATE autor SET nome = ?, sobrenome = ?, titulacao = ? WHERE id = ?";
+  private static final String SQL_DELETE = "DELETE FROM autor WHERE id = ?";
+  private static final String SQL_SELECT_ALL = "SELECT * FROM autor ORDER BY nome";
+  private static final String SQL_SELECT_BY_ID = "SELECT * FROM autor WHERE id = ?";
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+  public void salvar(Autor autor) throws SQLException {
+    if (autor.getId() == null || autor.getId() == 0) {
+      this.inserir(autor);
+    } else {
+      this.atualizar(autor);
+    }
+  }
+
+  private void inserir(Autor autor) throws SQLException {
+    Connection conexao = null;
+    PreparedStatement comando = null;
+    ResultSet rs = null;
+
+    try {
+      conexao = ConexaoFactory.getConexao();
+      comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
 
       comando.setString(1, autor.getNome());
       comando.setString(2, autor.getSobrenome());
@@ -20,37 +42,75 @@ public class AutorDAO {
 
       comando.executeUpdate();
 
-      try (ResultSet rs = comando.getGeneratedKeys()) {
-        if (rs.next()) {
-          autor.setId(rs.getInt(1)); // Padronizado como int
-        }
+      // Recupera ID gerado
+      rs = comando.getGeneratedKeys();
+      if (rs.next()) {
+        autor.setId(rs.getInt(1));
       }
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao salvar autor: " + e.getMessage());
+    } finally {
+      if (rs != null)
+        rs.close();
+      if (comando != null)
+        comando.close();
     }
   }
 
-  public List<Autor> listarTodos() {
-    List<Autor> lista = new ArrayList<>();
-    String sql = "SELECT * FROM autor";
+  private void atualizar(Autor autor) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_UPDATE)) {
 
-    try (Connection conexao = ConexaoBD.getInstancia().getConexao();
-        PreparedStatement comando = conexao.prepareStatement(sql);
+      comando.setString(1, autor.getNome());
+      comando.setString(2, autor.getSobrenome());
+      comando.setString(3, autor.getTitulacao());
+      comando.setInt(4, autor.getId());
+
+      comando.executeUpdate();
+    }
+  }
+
+  public void excluir(int id) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_DELETE)) {
+
+      comando.setInt(1, id);
+      comando.execute();
+    }
+  }
+
+  public List<Autor> listarTodos() throws SQLException {
+    List<Autor> lista = new ArrayList<>();
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ALL);
         ResultSet rs = comando.executeQuery()) {
 
       while (rs.next()) {
-        Autor a = new Autor();
-        a.setId(rs.getInt("id")); // Lendo Integer
-        a.setNome(rs.getString("nome"));
-        a.setSobrenome(rs.getString("sobrenome"));
-        a.setTitulacao(rs.getString("titulacao"));
-        lista.add(a);
+        lista.add(this.mapearAutor(rs));
       }
-
-    } catch (SQLException e) {
-      throw new RuntimeException("Erro ao listar autores: " + e.getMessage());
     }
     return lista;
+  }
+
+  public Autor buscarPorId(int id) throws SQLException {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_BY_ID)) {
+
+      comando.setInt(1, id);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next()) {
+          return this.mapearAutor(rs);
+        }
+      }
+    }
+    return null;
+  }
+
+  // --- Helper Method ---
+  private Autor mapearAutor(ResultSet rs) throws SQLException {
+    Autor autor = new Autor();
+    autor.setId(rs.getInt("id"));
+    autor.setNome(rs.getString("nome"));
+    autor.setSobrenome(rs.getString("sobrenome"));
+    autor.setTitulacao(rs.getString("titulacao"));
+    return autor;
   }
 }
