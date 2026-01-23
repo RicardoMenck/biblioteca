@@ -30,7 +30,7 @@ public class Debito {
     this.dataDebito = dataDebito;
   }
 
-  public boolean verificaDebito() {
+  public boolean verificarDebito() {
     if (this.codigoAluno == null) {
       return false;
     }

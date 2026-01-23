@@ -4,7 +4,6 @@ import java.util.Date;
 
 public class ItemDevolucao {
 
-  // Configuração de banco no futuro
   private static final double VALOR_MULTA_DIARIA = 2.00;
 
   private Integer id;
@@ -21,13 +20,11 @@ public class ItemDevolucao {
   public ItemDevolucao(ItemEmprestimo itemEmprestimo, Devolucao devolucao) {
     this.itemEmprestimo = itemEmprestimo;
     this.devolucao = devolucao;
-    this.dataDevolucao = new Date(); // Assume que devolveu "agora"
+    this.dataDevolucao = new Date();
     this.diasAtraso = 0;
     this.valorMulta = 0.0;
     this.calcularMulta();
   }
-
-  // --- MÉTODOS DE NEGÓCIO ---
 
   /**
    * Calcula se houve atraso e define o valor da multa.

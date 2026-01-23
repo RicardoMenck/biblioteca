@@ -10,19 +10,16 @@ public class Aluno {
   private String cpf;
   private String endereco;
 
-  // Construtor vazio
   public Aluno() {
   }
 
-  // Construtor utilitário para criação rápida (sem ID, pois o banco gera)
   public Aluno(String nome, String cpf, String endereco) {
     this.nome = nome;
     this.cpf = cpf;
     this.endereco = endereco;
-    this.gerarNovoRA(); // Gera ra automaticamente ao criar
+    this.gerarNovoRA();
   }
 
-  // Construtor do banco
   public Aluno(Integer id, String ra, String nome, String cpf, String endereco) {
     this.id = id;
     this.ra = ra;
@@ -40,7 +37,7 @@ public class Aluno {
     this.ra = String.format("%d%02d%d", ano, mes, sequencial);
   }
 
-  public boolean isValido() {
+  public boolean verificarAluno() {
     return this.nome != null && !this.nome.isEmpty() && this.ra != null;
   }
 

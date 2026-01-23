@@ -5,11 +5,11 @@ import java.util.Date;
 
 public class ItemEmprestimo {
   private Integer id;
-  private Livro livro;
-  private Emprestimo emprestimo;
-
   private Date dataDevolucao;
   private Date dataPrevista;
+
+  private Livro livro;
+  private Emprestimo emprestimo;
 
   public ItemEmprestimo() {
   }
@@ -22,15 +22,6 @@ public class ItemEmprestimo {
     }
   }
 
-  // public Date calculaDataDevolucao(Date data) {
-  // dataDevolucao = data;
-  // Calendar calendar = Calendar.getInstance();
-  // calendar.setTime(data);
-  // calendar.add(Calendar.DATE, livro.verPrazo());
-  // dataDevolucao = calendar.getTime();
-  // return dataDevolucao;
-  // }
-
   public Date calculaDataDevolucao(Date dataInicio) {
     if (this.livro == null) {
       return null;
@@ -38,13 +29,10 @@ public class ItemEmprestimo {
 
     Calendar calendar = Calendar.getInstance();
     calendar.setTime(dataInicio);
-
     // Pega o prazo específico deste livro (Ex: 7 dias, 14 dias...)
     int diasPrazo = this.livro.verPrazo();
-
     // Soma os dias
     calendar.add(Calendar.DAY_OF_MONTH, diasPrazo);
-
     // Grava na variável PREVISTA (O alvo a ser cumprido)
     this.dataPrevista = calendar.getTime();
 

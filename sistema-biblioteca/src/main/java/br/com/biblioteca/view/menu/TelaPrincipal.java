@@ -10,7 +10,7 @@ public class TelaPrincipal extends JFrame {
 
   public TelaPrincipal() {
     // Configurações da Janela
-    setTitle("Sistema de Biblioteca Sênior - v1.0");
+    setTitle("Sistema de Biblioteca");
     setSize(800, 600);
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setLocationRelativeTo(null); // Centraliza na tela
@@ -35,29 +35,28 @@ public class TelaPrincipal extends JFrame {
     // 3. Barra de Status (Rodapé)
     JPanel panelRodape = new JPanel(new FlowLayout(FlowLayout.LEFT));
     panelRodape.setBorder(BorderFactory.createEtchedBorder());
-    panelRodape.add(new JLabel("Banco de Dados: Conectado (SQLite) | Usuário: Admin"));
+    panelRodape.add(new JLabel("Banco de Dados: Conectado (SQLite)"));
     add(panelRodape, BorderLayout.SOUTH);
   }
 
   private void criarMenu() {
     JMenuBar menuBar = new JMenuBar();
 
-    // --- MENU CADASTROS ---
     JMenu menuCadastros = new JMenu("Cadastros");
 
     JMenuItem itemAluno = new JMenuItem("Alunos");
     JMenuItem itemTitulo = new JMenuItem("Títulos (Livros)");
-    JMenuItem itemAutor = new JMenuItem("Autores"); // Ainda não temos tela específica
+    JMenuItem itemAutor = new JMenuItem("Autores");
     JMenuItem itemArea = new JMenuItem("Áreas (Gêneros)");
 
     // --- AÇÕES CADASTROS ---
 
-    // 1. Tela de Alunos (Lista -> Cadastro)
+    // 1. Tela de Alunos
     itemAluno.addActionListener(e -> {
       new TelaListaAluno().setVisible(true);
     });
 
-    // 2. Tela de Títulos (Lista -> Cadastro -> Exemplares)
+    // 2. Tela de Títulos
     itemTitulo.addActionListener(e -> {
       new TelaListaTitulo().setVisible(true);
     });
@@ -73,8 +72,8 @@ public class TelaPrincipal extends JFrame {
 
     menuCadastros.add(itemAluno);
     menuCadastros.add(itemTitulo);
-    menuCadastros.add(itemArea);
     menuCadastros.add(itemAutor);
+    menuCadastros.add(itemArea);
 
     // --- MENU CIRCULAÇÃO ---
     JMenu menuCirculacao = new JMenu("Circulação");
@@ -114,7 +113,7 @@ public class TelaPrincipal extends JFrame {
     JMenu menuAjuda = new JMenu("Ajuda");
     JMenuItem itemSobre = new JMenuItem("Sobre");
     itemSobre.addActionListener(e -> JOptionPane.showMessageDialog(this,
-        "Sistema Biblioteca Sênior\nDesenvolvido em Java/Swing\nVersão 1.0"));
+        "Sistema Biblioteca\nDesenvolvido em Java/Swing\nVersão 1.0"));
     menuAjuda.add(itemSobre);
 
     // Adiciona menus à barra

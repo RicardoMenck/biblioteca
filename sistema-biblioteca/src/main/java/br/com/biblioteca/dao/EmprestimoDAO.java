@@ -16,8 +16,6 @@ import java.util.List;
 
 public class EmprestimoDAO {
 
-  // --- SQLs ---
-  // Join com Aluno para saber o nome de quem pegou na listagem
   private static final String SQL_SELECT_ALL = "SELECT e.*, a.nome as nome_aluno, a.ra " +
       "FROM emprestimo e " +
       "INNER JOIN aluno a ON e.id_aluno = a.id " +
@@ -30,7 +28,6 @@ public class EmprestimoDAO {
 
   private static final String SQL_INSERT = "INSERT INTO emprestimo (id_aluno, data_emprestimo, data_prevista) VALUES (?, ?, ?)";
 
-  // Itens
   private static final String SQL_INSERT_ITEM = "INSERT INTO item_emprestimo (id_emprestimo, id_livro, data_prevista, data_devolucao) VALUES (?, ?, ?, ?)";
 
   private static final String SQL_SELECT_ITENS_POR_EMPRESTIMO = "SELECT ie.*, l.id as id_livro_real, t.nome as nome_titulo "
@@ -40,10 +37,7 @@ public class EmprestimoDAO {
       "INNER JOIN titulo t ON l.id_titulo = t.id " +
       "WHERE ie.id_emprestimo = ?";
 
-  // Atualização de Estoque
   private static final String SQL_UPDATE_DISPONIBILIDADE_LIVRO = "UPDATE livro SET disponivel = ? WHERE id = ?";
-
-  // --- MÉTODOS ---
 
   public void salvar(Emprestimo emprestimo) throws SQLException {
     if (emprestimo.getId() == null) {
@@ -62,13 +56,10 @@ public class EmprestimoDAO {
       conexao = ConexaoFactory.getConexao();
       conexao.setAutoCommit(false);
 
-      // 1. Insere o Cabeçalho (Emprestimo)
       comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
       comando.setInt(1, emprestimo.getAluno().getId());
       comando.setDate(2, new java.sql.Date(emprestimo.getDataEmprestimo().getTime()));
 
-      // Data prevista geral (pode ser null se definida só nos itens, mas salvamos por
-      // segurança)
       if (emprestimo.getDataPrevista() != null) {
         comando.setDate(3, new java.sql.Date(emprestimo.getDataPrevista().getTime()));
       } else {
@@ -82,15 +73,14 @@ public class EmprestimoDAO {
         emprestimo.setId(rs.getInt(1));
       }
 
-      // 2. Insere os Itens e Baixa o Estoque
       salvarItens(conexao, emprestimo);
 
-      conexao.commit(); // EFETIVA TUDO
+      conexao.commit();
       System.out.println("Empréstimo #" + emprestimo.getId() + " realizado com sucesso!");
 
     } catch (SQLException e) {
       if (conexao != null)
-        conexao.rollback(); // DESFAZ TUDO EM CASO DE ERRO
+        conexao.rollback();
       throw e;
     } finally {
       if (conexao != null)
@@ -99,14 +89,10 @@ public class EmprestimoDAO {
         rs.close();
       if (comando != null)
         comando.close();
-      // Connection fica aberta (Factory/Singleton)
+
     }
   }
 
-  /**
-   * Método privado que percorre a lista de livros, salva na tabela de ligação
-   * e atualiza o status do livro físico.
-   */
   private void salvarItens(Connection conexao, Emprestimo emprestimo) throws SQLException {
     if (emprestimo.getItens() == null || emprestimo.getItens().isEmpty()) {
       return;
@@ -116,14 +102,13 @@ public class EmprestimoDAO {
         PreparedStatement comandoStock = conexao.prepareStatement(SQL_UPDATE_DISPONIBILIDADE_LIVRO)) {
 
       for (ItemEmprestimo item : emprestimo.getItens()) {
-        // a) Insert na tabela item_emprestimo
+
         comandoItem.setInt(1, emprestimo.getId());
         comandoItem.setInt(2, item.getLivro().getId());
         comandoItem.setDate(3, new java.sql.Date(item.getDataPrevista().getTime()));
         comandoItem.setNull(4, java.sql.Types.DATE); // Data Devolução nasce NULL
         comandoItem.executeUpdate();
 
-        // b) Update na tabela livro (Disponivel = FALSE/0)
         comandoStock.setInt(1, 0); // 0 = Indisponível
         comandoStock.setInt(2, item.getLivro().getId());
         comandoStock.executeUpdate();
@@ -139,8 +124,6 @@ public class EmprestimoDAO {
 
       while (rs.next()) {
         lista.add(mapearEmprestimo(rs));
-        // Nota: Por performance, NÃO carregamos os itens aqui (Lazy Loading).
-        // Se precisar ver os livros, chamamos buscarPorId ou um método específico.
       }
     }
     return lista;
@@ -160,7 +143,6 @@ public class EmprestimoDAO {
 
       if (rs.next()) {
         emp = mapearEmprestimo(rs);
-        // Aqui sim: Carregamos os itens porque estamos vendo o detalhe
         carregarItens(conexao, emp);
       }
     } finally {
@@ -172,7 +154,6 @@ public class EmprestimoDAO {
     return emp;
   }
 
-  // Carrega os livros associados a este empréstimo
   private void carregarItens(Connection conexao, Emprestimo emp) throws SQLException {
     try (PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ITENS_POR_EMPRESTIMO)) {
       comando.setInt(1, emp.getId());

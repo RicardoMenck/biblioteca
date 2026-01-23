@@ -12,14 +12,12 @@ import java.util.List;
 
 public class AlunoDAO {
 
-  // --- SQL CONSTANTS (Atualizadas com RA e Endereço) ---
   private static final String SQL_INSERT = "INSERT INTO aluno (nome, ra, cpf, endereco) VALUES (?, ?, ?, ?)";
   private static final String SQL_UPDATE = "UPDATE aluno SET nome = ?, ra = ?, cpf = ?, endereco = ? WHERE id = ?";
   private static final String SQL_DELETE = "DELETE FROM aluno WHERE id = ?";
   private static final String SQL_SELECT_ALL = "SELECT * FROM aluno ORDER BY nome";
   private static final String SQL_SELECT_BY_ID = "SELECT * FROM aluno WHERE id = ?";
 
-  // Método extra muito útil: Buscar aluno pelo código da carteirinha (RA)
   private static final String SQL_SELECT_BY_RA = "SELECT * FROM aluno WHERE ra = ?";
 
   public void salvar(Aluno aluno) throws SQLException {
@@ -37,13 +35,13 @@ public class AlunoDAO {
 
     try {
       conn = ConexaoFactory.getConexao();
-      // RETURN_GENERATED_KEYS é vital para pegar o ID gerado pelo banco
+
       pstm = conn.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
 
       pstm.setString(1, aluno.getNome());
-      pstm.setString(2, aluno.getRa()); // String
+      pstm.setString(2, aluno.getRa());
       pstm.setString(3, aluno.getCpf());
-      pstm.setString(4, aluno.getEndereco()); // String
+      pstm.setString(4, aluno.getEndereco());
 
       pstm.executeUpdate();
 
@@ -111,10 +109,6 @@ public class AlunoDAO {
     return null;
   }
 
-  /**
-   * Busca um aluno pelo RA (Matrícula).
-   * Essencial para a tela de empréstimo: "Digite seu RA..."
-   */
   public Aluno buscarPorRa(String ra) throws SQLException {
     try (Connection conn = ConexaoFactory.getConexao();
         PreparedStatement pstm = conn.prepareStatement(SQL_SELECT_BY_RA)) {
@@ -126,15 +120,15 @@ public class AlunoDAO {
         }
       }
     }
-    return null; // Retorna nulo se não achar (RA inválido)
+    return null;
   }
 
-  // --- Helper (Evita repetição de código) ---
+  // --- (Evita repetição de código) ---
   private Aluno mapearAluno(ResultSet rs) throws SQLException {
     Aluno aluno = new Aluno();
     aluno.setId(rs.getInt("id"));
     aluno.setNome(rs.getString("nome"));
-    aluno.setRa(rs.getString("ra")); // Lê como String
+    aluno.setRa(rs.getString("ra"));
     aluno.setCpf(rs.getString("cpf"));
     aluno.setEndereco(rs.getString("endereco"));
     return aluno;

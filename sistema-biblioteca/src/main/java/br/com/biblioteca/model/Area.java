@@ -8,13 +8,11 @@ public class Area {
   public Area() {
   }
 
-  // Construtor sem ID (para novos cadastros antes de ir pro banco)
   public Area(String nome, String descricao) {
     this.nome = nome;
     this.descricao = descricao;
   }
 
-  // Construtor para criação rápida
   public Area(Integer id, String nome, String descricao) {
     this.id = id;
     this.nome = nome;
@@ -22,14 +20,13 @@ public class Area {
   }
 
   public boolean validar() {
-    // Verifica se nome é nulo ou vazio/espaço em branco
+
     if (this.nome == null || this.nome.trim().isEmpty()) {
       return false;
     }
     return true;
   }
 
-  // Getters e Setters
   public Integer getId() {
     return id;
   }

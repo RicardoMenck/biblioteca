@@ -11,9 +11,8 @@ public class Titulo {
   private Integer edicao;
   private Integer ano;
 
-  // RELACIONAMENTOS DO DIAGRAMA
-  private Area area; // 1..1 (Um Título tem uma Área)
-  private List<Autor> autores = new ArrayList<>(); // 1..* (Tem vários autores)
+  private Area area;
+  private List<Autor> autores = new ArrayList<>();
 
   public Titulo() {
   }
@@ -30,7 +29,7 @@ public class Titulo {
     return this.nome != null && !this.nome.isEmpty()
         && this.prazo != null && this.prazo > 0
         && this.area != null;
-    // Poderíamos validar se autores.isEmpty() se for obrigatório ter autor
+
   }
 
   public void adicionarAutor(Autor autor) {
@@ -43,7 +42,6 @@ public class Titulo {
     this.autores.remove(autor);
   }
 
-  // Getters e Setters
   public Integer getId() {
     return id;
   }

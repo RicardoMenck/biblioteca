@@ -13,9 +13,8 @@ import java.util.List;
 
 public class LivroDAO {
 
-  // --- SQL CONSTANTS ---
   // JOIN essencial: Traz o nome do título junto com os dados do livro físico
-  private static final String SQL_SELECT_ALL = "SELECT l.*, t.nome as nome_titulo, t.isbn " +
+  private static final String SQL_SELECT_ALL = "SELECT l.*, t.nome as nome_titulo, t.isbn, t.prazo " +
       "FROM livro l " +
       "INNER JOIN titulo t ON l.id_titulo = t.id";
 
@@ -23,14 +22,9 @@ public class LivroDAO {
 
   // Útil para ver quantos exemplares existem de um determinado título
   private static final String SQL_SELECT_BY_TITULO = SQL_SELECT_ALL + " WHERE l.id_titulo = ?";
-
   private static final String SQL_INSERT = "INSERT INTO livro (id_titulo, disponivel, exemplar_biblioteca) VALUES (?, ?, ?)";
-
   private static final String SQL_UPDATE = "UPDATE livro SET id_titulo=?, disponivel=?, exemplar_biblioteca=? WHERE id=?";
-
   private static final String SQL_DELETE = "DELETE FROM livro WHERE id=?";
-
-  // --- MÉTODOS CRUD ---
 
   public void salvar(Livro livro) throws SQLException {
     if (livro.getId() == null || livro.getId() == 0) {
@@ -50,7 +44,6 @@ public class LivroDAO {
       comando = conexao.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS);
 
       comando.setInt(1, livro.getTitulo().getId());
-      // SQLite usa 0 ou 1. Convertemos o boolean do Java.
       comando.setInt(2, livro.isDisponivel() ? 1 : 0);
       comando.setInt(3, livro.isExemplarBiblioteca() ? 1 : 0);
 
@@ -102,8 +95,6 @@ public class LivroDAO {
     return livros;
   }
 
-  // Busca todos os exemplares de um título específico (ex: todos os Harry Potter
-  // da estante)
   public List<Livro> listarPorTitulo(int idTitulo) throws SQLException {
     List<Livro> livros = new ArrayList<>();
     try (Connection conexao = ConexaoFactory.getConexao();
@@ -133,8 +124,6 @@ public class LivroDAO {
     return null;
   }
 
-  // --- MÉTODOS AUXILIARES ---
-
   private Livro mapearLivro(ResultSet rs) throws SQLException {
     Livro livro = new Livro();
     livro.setId(rs.getInt("id"));
@@ -143,11 +132,12 @@ public class LivroDAO {
     livro.setDisponivel(rs.getInt("disponivel") == 1);
     livro.setExemplarBiblioteca(rs.getInt("exemplar_biblioteca") == 1);
 
-    // Monta o objeto Titulo com os dados que vieram no JOIN
+    // Monta o objeto Titulo
     Titulo titulo = new Titulo();
     titulo.setId(rs.getInt("id_titulo"));
-    titulo.setNome(rs.getString("nome_titulo")); // Coluna do JOIN
+    titulo.setNome(rs.getString("nome_titulo"));
     titulo.setIsbn(rs.getString("isbn"));
+    titulo.setPrazo(rs.getInt("prazo"));
 
     livro.setTitulo(titulo);
 

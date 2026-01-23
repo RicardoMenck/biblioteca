@@ -13,21 +13,16 @@ import java.util.List;
 
 public class ReservaDAO {
 
-  // Join agora é direto em TITULO (mais simples)
   private static final String SQL_SELECT_ATIVAS = "SELECT r.*, a.nome as nome_aluno, a.ra, t.nome as nome_titulo " +
       "FROM reserva r " +
       "INNER JOIN aluno a ON r.id_aluno = a.id " +
-      "INNER JOIN titulo t ON r.id_titulo = t.id " + // Join direto no Título
-      "WHERE r.ativa = 1 " +
-      "ORDER BY r.data_reserva ASC"; // Importante: Ordem de chegada (Fila)
+      "INNER JOIN titulo t ON r.id_titulo = t.id " +
+      "ORDER BY r.data_reserva ASC";
 
   private static final String SQL_INSERT = "INSERT INTO reserva (id_aluno, id_titulo, data_reserva, ativa) VALUES (?, ?, ?, ?)";
 
   private static final String SQL_CANCELAR = "UPDATE reserva SET ativa = 0 WHERE id = ?";
 
-  // Novo método útil: Verificar se existe reserva para um título específico
-  // Isso será usado na Devolução para avisar: "Livro devolvido! Tem reserva pra
-  // ele!"
   private static final String SQL_COUNT_RESERVAS = "SELECT COUNT(*) FROM reserva WHERE id_titulo = ? AND ativa = 1";
 
   public void salvar(Reserva reserva) throws SQLException {
@@ -35,7 +30,7 @@ public class ReservaDAO {
         PreparedStatement comando = conexao.prepareStatement(SQL_INSERT)) {
 
       comando.setInt(1, reserva.getAluno().getId());
-      comando.setInt(2, reserva.getTitulo().getId()); // ID do Título
+      comando.setInt(2, reserva.getTitulo().getId());
       comando.setDate(3, new java.sql.Date(reserva.getDataReserva().getTime()));
       comando.setInt(4, reserva.isAtiva() ? 1 : 0);
 

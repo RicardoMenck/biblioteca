@@ -35,7 +35,6 @@ public class Autor {
     return sobrenome + ", " + nome;
   }
 
-  // Getters e Setters
   public Integer getId() {
     return id;
   }

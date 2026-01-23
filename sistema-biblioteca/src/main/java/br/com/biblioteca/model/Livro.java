@@ -2,9 +2,10 @@ package br.com.biblioteca.model;
 
 public class Livro {
   private Integer id;
-  private Titulo titulo; // Associação: O Livro "é um exemplar de" um Título
-  private boolean disponivel; // True = Na estante, False = Emprestado
-  private boolean exemplarBiblioteca; // True = Apenas consulta interna (não sai)
+  private boolean disponivel;
+  private boolean exemplarBiblioteca;
+
+  private Titulo titulo;
 
   public Livro() {
     this.disponivel = true;
@@ -28,8 +29,7 @@ public class Livro {
     if (this.titulo != null && this.titulo.getPrazo() != null) {
       return this.titulo.getPrazo();
     }
-    // Retorna 0 (ou um padrão seguro) se houver erro nos dados, evitando crash do
-    // sistema
+
     return 0;
   }
 
@@ -38,22 +38,18 @@ public class Livro {
   }
 
   public boolean verificarDisponibilidade() {
-    // Se o livro já estiver emprestado (disponivel = false), retorna false.
+
     if (!this.disponivel) {
       return false;
     }
 
-    // Se o livro for de uso exclusivo da biblioteca (verificaLivro = true), retorna
-    // false.
     if (this.verificaLivro()) {
       return false;
     }
 
-    // Se passou pelos dois filtros, está livre para levar.
     return true;
   }
 
-  // Getters e Setters para o DAO
   public Integer getId() {
     return id;
   }
