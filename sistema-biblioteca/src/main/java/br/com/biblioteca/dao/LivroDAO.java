@@ -124,6 +124,20 @@ public class LivroDAO {
     return null;
   }
 
+  public int contarDisponiveisPorTitulo(int idTitulo) throws SQLException {
+    // Conta livros desse título que estão com disponivel = 1
+    String sql = "SELECT COUNT(*) FROM livro WHERE id_titulo = ? AND disponivel = 1";
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+      comando.setInt(1, idTitulo);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next())
+          return rs.getInt(1);
+      }
+    }
+    return 0;
+  }
+
   private Livro mapearLivro(ResultSet rs) throws SQLException {
     Livro livro = new Livro();
     livro.setId(rs.getInt("id"));

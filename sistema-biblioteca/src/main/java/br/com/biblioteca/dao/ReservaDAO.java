@@ -77,16 +77,18 @@ public class ReservaDAO {
     return lista;
   }
 
-  public boolean isLivroReservado(int idLivro) throws SQLException {
-    String sql = "SELECT COUNT(*) FROM reserva WHERE id_livro = ? AND ativa = 1";
+  public boolean isLivroReservado(int idTitulo) throws SQLException {
+    // CORREÇÃO: Usar id_titulo em vez de id_livro
+    String sql = "SELECT COUNT(*) FROM reserva WHERE id_titulo = ? AND ativa = 1";
 
     try (Connection conexao = ConexaoFactory.getConexao();
         PreparedStatement comando = conexao.prepareStatement(sql)) {
 
-      comando.setInt(1, idLivro);
+      comando.setInt(1, idTitulo);
+
       try (ResultSet rs = comando.executeQuery()) {
         if (rs.next()) {
-          return rs.getInt(1) > 0; // Se for maior que 0, está reservado
+          return rs.getInt(1) > 0;
         }
       }
     }
@@ -101,6 +103,33 @@ public class ReservaDAO {
         if (rs.next()) {
           return rs.getInt(1) > 0;
         }
+      }
+    }
+    return false;
+  }
+
+  public int contarReservasAtivas(int idTitulo) throws SQLException {
+    String sql = "SELECT COUNT(*) FROM reserva WHERE id_titulo = ? AND ativa = 1";
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+      comando.setInt(1, idTitulo);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next())
+          return rs.getInt(1);
+      }
+    }
+    return 0;
+  }
+
+  public boolean alunoPossuiReserva(int idTitulo, int idAluno) throws SQLException {
+    String sql = "SELECT COUNT(*) FROM reserva WHERE id_titulo = ? AND id_aluno = ? AND ativa = 1";
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+      comando.setInt(1, idTitulo);
+      comando.setInt(2, idAluno);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next())
+          return rs.getInt(1) > 0;
       }
     }
     return false;

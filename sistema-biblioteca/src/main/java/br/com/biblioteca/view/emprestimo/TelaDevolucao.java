@@ -51,7 +51,7 @@ public class TelaDevolucao extends JFrame {
     JPanel panelBusca = new JPanel(new FlowLayout(FlowLayout.LEFT));
     panelBusca.setBorder(BorderFactory.createTitledBorder("Buscar Empréstimo"));
 
-    panelBusca.add(new JLabel("ID do Empréstimo:"));
+    panelBusca.add(new JLabel("Registro Acadêmico do Aluno:"));
     txtIdEmprestimo = new JTextField(10);
     JButton btnBuscar = new JButton("Buscar");
 

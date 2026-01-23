@@ -209,11 +209,36 @@ public class TelaNovoEmprestimo extends JFrame {
         return;
       }
 
-      if (reservaDAO.isLivroReservado(id)) {
+      if (reservaDAO.isLivroReservado(livro.getTitulo().getId())) {
         JOptionPane.showMessageDialog(this,
             "Bloqueio: Este livro está RESERVADO para outro aluno.\n" +
                 "Não é possível realizar o empréstimo.");
         return;
+      }
+
+      int idTitulo = livro.getTitulo().getId();
+      int idAluno = this.alunoSelecionado.getId();
+
+      int qtdReservas = reservaDAO.contarReservasAtivas(idTitulo);
+      int qtdDisponiveis = livroDAO.contarDisponiveisPorTitulo(idTitulo);
+
+      if (qtdReservas > 0) {
+
+        if (qtdDisponiveis <= qtdReservas) {
+
+          boolean alunoEhDonoDaReserva = reservaDAO.alunoPossuiReserva(idTitulo, idAluno);
+
+          if (!alunoEhDonoDaReserva) {
+            JOptionPane.showMessageDialog(this,
+                "BLOQUEIO DE RESERVA:\n" +
+                    "Existem " + qtdReservas + " reservas para apenas " + qtdDisponiveis + " exemplares disponíveis.\n"
+                    +
+                    "A prioridade é de quem reservou.");
+            return;
+          } else {
+            JOptionPane.showMessageDialog(this, "Nota: Reserva identificada para este aluno. Liberando exemplar!");
+          }
+        }
       }
 
       // Adiciona ao carrinho
