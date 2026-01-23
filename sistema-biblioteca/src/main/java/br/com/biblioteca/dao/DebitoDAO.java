@@ -16,8 +16,8 @@ public class DebitoDAO {
   private static final String SQL_DELETE = "DELETE FROM debito WHERE id = ?";
 
   public void salvar(Debito debito) throws SQLException {
-    try (Connection conexa = ConexaoFactory.getConexao();
-        PreparedStatement comando = conexa.prepareStatement(SQL_INSERT)) {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_INSERT)) {
 
       comando.setInt(1, debito.getCodigoAluno());
       comando.setDouble(2, debito.getValor());
@@ -28,8 +28,8 @@ public class DebitoDAO {
 
   public List<Debito> listarPorAluno(int idAluno) throws SQLException {
     List<Debito> debitos = new ArrayList<>();
-    try (Connection conexa = ConexaoFactory.getConexao();
-        PreparedStatement comando = conexa.prepareStatement(SQL_SELECT_POR_ALUNO)) {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_POR_ALUNO)) {
 
       comando.setInt(1, idAluno);
       try (ResultSet rs = comando.executeQuery()) {
@@ -47,10 +47,30 @@ public class DebitoDAO {
   }
 
   public void quitarDebito(int idDebito) throws SQLException {
-    try (Connection conexa = ConexaoFactory.getConexao();
-        PreparedStatement comando = conexa.prepareStatement(SQL_DELETE)) {
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(SQL_DELETE)) {
       comando.setInt(1, idDebito);
       comando.executeUpdate();
     }
+  }
+
+  public boolean possuiDebitoPendente(int idAluno) throws SQLException {
+
+    String sql = "SELECT COUNT(*) FROM debito WHERE id_aluno = ? AND data_pagamento IS NULL";
+
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+
+      comando.setInt(1, idAluno);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next()) {
+          return rs.getInt(1) > 0;
+        }
+      }
+    } catch (Exception e) {
+
+      return false;
+    }
+    return false;
   }
 }

@@ -1,8 +1,10 @@
 package br.com.biblioteca.view.emprestimo;
 
 import br.com.biblioteca.dao.AlunoDAO;
+import br.com.biblioteca.dao.DebitoDAO;
 import br.com.biblioteca.dao.EmprestimoDAO;
 import br.com.biblioteca.dao.LivroDAO;
+import br.com.biblioteca.dao.ReservaDAO;
 import br.com.biblioteca.model.Aluno;
 import br.com.biblioteca.model.Emprestimo;
 import br.com.biblioteca.model.ItemEmprestimo;
@@ -10,6 +12,7 @@ import br.com.biblioteca.model.Livro;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -33,6 +36,8 @@ public class TelaNovoEmprestimo extends JFrame {
   private AlunoDAO alunoDAO;
   private LivroDAO livroDAO;
   private EmprestimoDAO emprestimoDAO;
+  private ReservaDAO reservaDAO;
+  private DebitoDAO debitoDAO;
 
   public TelaNovoEmprestimo() {
     super("Novo Empréstimo");
@@ -41,6 +46,8 @@ public class TelaNovoEmprestimo extends JFrame {
     this.alunoDAO = new AlunoDAO();
     this.livroDAO = new LivroDAO();
     this.emprestimoDAO = new EmprestimoDAO();
+    this.reservaDAO = new ReservaDAO();
+    this.debitoDAO = new DebitoDAO();
 
     setSize(800, 600);
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -137,16 +144,30 @@ public class TelaNovoEmprestimo extends JFrame {
 
     try {
       Aluno a = alunoDAO.buscarPorRa(ra);
-      if (a != null) {
-        this.alunoSelecionado = a;
-        lblNomeAluno.setText(a.getNome() + " (RA: " + a.getRa() + ")");
-        lblNomeAluno.setForeground(new Color(0, 100, 0)); // Verde escuro
-        txtIdLivro.requestFocus(); // Pula o foco para o campo de livro
-      } else {
+
+      if (a == null) {
         this.alunoSelecionado = null;
         lblNomeAluno.setText("Aluno não encontrado!");
         lblNomeAluno.setForeground(Color.RED);
+        JOptionPane.showMessageDialog(this, "Erro: Aluno não cadastrado no sistema.");
+        return;
       }
+
+      if (debitoDAO.possuiDebitoPendente(a.getId())) {
+        this.alunoSelecionado = null;
+        lblNomeAluno.setText("ALUNO BLOQUEADO (DÉBITO)");
+        lblNomeAluno.setForeground(Color.RED);
+        JOptionPane.showMessageDialog(this,
+            "Operação Negada: O aluno possui pendências financeiras.\n" +
+                "Regularize a situação antes de realizar novos empréstimos.");
+        return; // (4.a.2) Finaliza caso de uso
+      }
+
+      this.alunoSelecionado = a;
+      lblNomeAluno.setText(a.getNome() + " (RA: " + a.getRa() + ")");
+      lblNomeAluno.setForeground(new Color(0, 100, 0));
+      txtIdLivro.requestFocus();
+
     } catch (Exception e) {
       JOptionPane.showMessageDialog(this, "Erro ao buscar aluno: " + e.getMessage());
     }
@@ -177,13 +198,21 @@ public class TelaNovoEmprestimo extends JFrame {
         return;
       }
 
+      if (livro.isExemplarBiblioteca()) {
+        JOptionPane.showMessageDialog(this,
+            "Bloqueio: Este exemplar é de CONSULTA LOCAL e não pode ser emprestado.");
+        return;
+      }
+
       if (!livro.isDisponivel()) {
         JOptionPane.showMessageDialog(this, "Livro ID " + id + " já está emprestado!");
         return;
       }
 
-      if (livro.isExemplarBiblioteca()) {
-        JOptionPane.showMessageDialog(this, "ATENÇÃO: Este é um exemplar de CONSULTA LOCAL (Não sai da biblioteca).");
+      if (reservaDAO.isLivroReservado(id)) {
+        JOptionPane.showMessageDialog(this,
+            "Bloqueio: Este livro está RESERVADO para outro aluno.\n" +
+                "Não é possível realizar o empréstimo.");
         return;
       }
 
@@ -249,7 +278,10 @@ public class TelaNovoEmprestimo extends JFrame {
       // 3. Salva no Banco (Transação Atômica do DAO)
       emprestimoDAO.salvar(emp);
 
-      // 4. Sucesso!
+      // 4. O Sistema Imprime os dados (Simulação)
+      imprimirComprovante(emp);
+
+      // 5. Sucesso!
       JOptionPane.showMessageDialog(this, "Empréstimo realizado com sucesso!\nID: " + emp.getId());
       dispose(); // Fecha tela
 
@@ -265,4 +297,35 @@ public class TelaNovoEmprestimo extends JFrame {
     c.add(Calendar.DAY_OF_MONTH, dias);
     return c.getTime();
   }
+
+  private void imprimirComprovante(Emprestimo emp) {
+    StringBuilder recibo = new StringBuilder();
+    recibo.append("============== RECIBO DE EMPRÉSTIMO ==============\n");
+    recibo.append("Biblioteca Sênior - Data: ").append(new java.util.Date()).append("\n");
+    recibo.append("--------------------------------------------------\n");
+    recibo.append("Aluno: ").append(emp.getAluno().getNome()).append("\n");
+    recibo.append("RA:    ").append(emp.getAluno().getRa()).append("\n");
+    recibo.append("--------------------------------------------------\n");
+    recibo.append("LIVROS EMPRESTADOS:\n");
+
+    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+    for (ItemEmprestimo item : emp.getItens()) {
+      recibo.append(String.format("- [ID %d] %s\n  Devolução prevista: %s\n",
+          item.getLivro().getId(),
+          item.getLivro().getTitulo().getNome(),
+          sdf.format(item.getDataPrevista())));
+    }
+    recibo.append("==================================================\n");
+    recibo.append("Guarde este comprovante!");
+
+    // Mostra o recibo num popup scrollável simulando impressão
+    JTextArea area = new JTextArea(recibo.toString());
+    area.setEditable(false);
+    JScrollPane scroll = new JScrollPane(area);
+    scroll.setPreferredSize(new Dimension(350, 400));
+
+    JOptionPane.showMessageDialog(this, scroll, "Imprimindo...", JOptionPane.INFORMATION_MESSAGE);
+  }
+
 }

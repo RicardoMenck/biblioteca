@@ -77,6 +77,22 @@ public class ReservaDAO {
     return lista;
   }
 
+  public boolean isLivroReservado(int idLivro) throws SQLException {
+    String sql = "SELECT COUNT(*) FROM reserva WHERE id_livro = ? AND ativa = 1";
+
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+
+      comando.setInt(1, idLivro);
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next()) {
+          return rs.getInt(1) > 0; // Se for maior que 0, está reservado
+        }
+      }
+    }
+    return false;
+  }
+
   public boolean existeReservaParaTitulo(int idTitulo) throws SQLException {
     try (Connection conexao = ConexaoFactory.getConexao();
         PreparedStatement comando = conexao.prepareStatement(SQL_COUNT_RESERVAS)) {

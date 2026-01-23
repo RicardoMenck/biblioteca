@@ -34,7 +34,7 @@ public class TelaDevolucao extends JFrame {
   // DAOs
   private EmprestimoDAO emprestimoDAO;
   private DevolucaoDAO devolucaoDAO;
-  private AlunoDAO alunoDAO; // Opcional, se quisermos buscar por RA depois
+  private AlunoDAO alunoDAO;
 
   public TelaDevolucao() {
     super("Devolução de Livros");
@@ -102,16 +102,16 @@ public class TelaDevolucao extends JFrame {
   }
 
   private void buscarEmprestimo() {
-    String idStr = txtIdEmprestimo.getText().trim();
-    if (idStr.isEmpty())
+    String termoBusca = txtIdEmprestimo.getText().trim();
+    if (termoBusca.isEmpty())
       return;
 
     try {
-      int id = Integer.parseInt(idStr);
-      Emprestimo emp = emprestimoDAO.buscarPorId(id);
+      Emprestimo emp = emprestimoDAO.buscarEmprestimoAbertoPorRa(termoBusca);
 
       if (emp == null) {
-        JOptionPane.showMessageDialog(this, "Empréstimo não encontrado.");
+        JOptionPane.showMessageDialog(this,
+            "Nenhum empréstimo pendente encontrado para este Aluno (RA: " + termoBusca + ").");
         limparTela();
         return;
       }
@@ -136,10 +136,8 @@ public class TelaDevolucao extends JFrame {
       exibirDados(emp);
       btnConfirmar.setEnabled(true);
 
-    } catch (NumberFormatException e) {
-      JOptionPane.showMessageDialog(this, "ID inválido.");
     } catch (Exception e) {
-      JOptionPane.showMessageDialog(this, "Erro: " + e.getMessage());
+      JOptionPane.showMessageDialog(this, "Erro ao buscar: " + e.getMessage());
       e.printStackTrace();
     }
   }

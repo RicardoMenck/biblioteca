@@ -154,6 +154,31 @@ public class EmprestimoDAO {
     return emp;
   }
 
+  public Emprestimo buscarEmprestimoAbertoPorRa(String ra) throws SQLException {
+
+    String sql = "SELECT e.* " +
+        "FROM emprestimo e " +
+        "INNER JOIN aluno a ON e.id_aluno = a.id " +
+        "INNER JOIN item_emprestimo ie ON ie.id_emprestimo = e.id " +
+        "WHERE a.ra = ? AND ie.data_devolucao IS NULL " +
+        "LIMIT 1";
+
+    try (Connection conexao = ConexaoFactory.getConexao();
+        PreparedStatement comando = conexao.prepareStatement(sql)) {
+
+      comando.setString(1, ra);
+
+      try (ResultSet rs = comando.executeQuery()) {
+        if (rs.next()) {
+          // Reaproveita o método que já existe para montar o objeto completo
+          // (com itens, aluno, livros, etc.)
+          return buscarPorId(rs.getInt("id"));
+        }
+      }
+    }
+    return null; // Não achou empréstimo pendente para este RA
+  }
+
   private void carregarItens(Connection conexao, Emprestimo emp) throws SQLException {
     try (PreparedStatement comando = conexao.prepareStatement(SQL_SELECT_ITENS_POR_EMPRESTIMO)) {
       comando.setInt(1, emp.getId());
