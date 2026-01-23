@@ -48,6 +48,7 @@ public class TelaPrincipal extends JFrame {
     JMenuItem itemAluno = new JMenuItem("Alunos");
     JMenuItem itemTitulo = new JMenuItem("Títulos (Livros)");
     JMenuItem itemAutor = new JMenuItem("Autores"); // Ainda não temos tela específica
+    JMenuItem itemArea = new JMenuItem("Áreas (Gêneros)");
 
     // --- AÇÕES CADASTROS ---
 
@@ -61,14 +62,18 @@ public class TelaPrincipal extends JFrame {
       new TelaListaTitulo().setVisible(true);
     });
 
-    // 3. Tela de Autores (Pendente)
+    // 3. Tela de Autores
     itemAutor.addActionListener(e -> {
-      JOptionPane.showMessageDialog(this, "Tela de Autores em construção!");
-      // Dica: Seria igualzinha a de Aluno
+      new br.com.biblioteca.view.livro.TelaListaAutor().setVisible(true);
+    });
+
+    itemArea.addActionListener(e -> {
+      new br.com.biblioteca.view.livro.TelaListaArea().setVisible(true);
     });
 
     menuCadastros.add(itemAluno);
     menuCadastros.add(itemTitulo);
+    menuCadastros.add(itemArea);
     menuCadastros.add(itemAutor);
 
     // --- MENU CIRCULAÇÃO ---
@@ -80,19 +85,24 @@ public class TelaPrincipal extends JFrame {
 
     // --- AÇÕES CIRCULAÇÃO ---
 
-    // 4. Tela de Novo Empréstimo (O Core)
+    // 4. Tela de Novo Empréstimo
     itemEmprestimo.addActionListener(e -> {
       new TelaNovoEmprestimo().setVisible(true);
     });
 
-    // 5. Devolução (Pendente)
+    // 5. Devolução
     itemDevolucao.addActionListener(e -> {
       new br.com.biblioteca.view.emprestimo.TelaDevolucao().setVisible(true);
     });
 
-    // 6. Reservas (Pendente)
+    // 6. Reservas
     itemReservas.addActionListener(e -> {
-      JOptionPane.showMessageDialog(this, "Tela de Reservas em construção!");
+      new br.com.biblioteca.view.reserva.TelaListaReserva().setVisible(true);
+    });
+
+    // TelaPrincipal.java
+    itemAutor.addActionListener(e -> {
+      new br.com.biblioteca.view.livro.TelaListaAutor().setVisible(true);
     });
 
     menuCirculacao.add(itemEmprestimo);
